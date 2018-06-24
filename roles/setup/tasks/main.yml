@@ -1,0 +1,33 @@
+- name: load user vars
+  include_vars:
+    dir: "{{ playbook_dir }}/vars"
+
+- name: set config dir
+  set_fact:
+    config_dir: "{{ playbook_dir }}/host_vars/{{ inventory_hostname }}"
+
+- name: create host directory vars
+  file:
+    path: "{{ playbook_dir }}/host_vars/{{ inventory_hostname }}"
+    state: directory
+  delegate_to: localhost
+
+- name: generate host base vars
+  template:
+    src: base.j2
+    dest: "{{ config_dir }}/base.yml"
+  register: base_vars
+  delegate_to: localhost
+
+- name: generate tenant networks
+  template:
+    src: tenants.j2
+    dest: "{{ config_dir }}/tenants.yml"
+  delegate_to: localhost
+  register: tenants_vars
+  when: inventory_hostname in groups['tor']
+
+- name: load host vars
+  include_vars:
+    dir: "{{ config_dir }}"
+  when: base_vars is changed or tenants_vars is changed

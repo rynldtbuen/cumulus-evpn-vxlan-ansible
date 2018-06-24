@@ -1,0 +1,16 @@
+- name: set clag backup ip
+  set_fact:
+    clag_backup_ip: |
+      {% if node_id | int is odd %}
+      {% set peer_sw = 'leaf0' + (node_id | int + 1) | string %}
+      {% else %}
+      {% set peer_sw = 'leaf0' + (node_id | int - 1) | string %}
+      {% endif %}
+      {{ hostvars[peer_sw].loopback_ipv4 | ipaddr('address') }}
+
+- name: configure clag peer
+  nclu:
+    template: |
+      {% set clag_sys_mac = '44:38:39:FF:01:00' | hwaddr('int') - rack_id  %}
+      add clag peer sys-mac {{ clag_sys_mac | hwaddr('linux') }} interface {{ clag_interface }} {{ 'primary' if node_id | int is odd else 'secondary' }} backup-ip {{ clag_backup_ip }}
+    commit: true

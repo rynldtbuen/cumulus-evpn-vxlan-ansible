@@ -1,0 +1,22 @@
+- name: update dhcp static host
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: load dhcp static host variables
+    include_vars: file="{{ playbook_dir }}/vars/dhcp-static-host.yml"
+
+  - name: generate dhcpd.conf file
+    template:
+      src: dhcpd.j2
+      dest: "{{ role_path }}/templates/dhcpd.conf"
+    register: dhcpd_conf
+
+  - name: copy dhcp.conf
+    copy:
+      src: "{{ role_path }}/templates/dhcpd.conf"
+      dest: /etc/dhcp/dhcpd.conf
+    when: dhcpd_conf is changed
+
+  - name: restart isc-dhcp-server
+    systemd: name="isc-dhcp-server" state=restarted
+    when: dhcpd_conf is changed

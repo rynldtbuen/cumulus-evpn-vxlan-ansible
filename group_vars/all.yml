@@ -1,0 +1,2 @@
+node_id: |
+  {{ inventory_hostname | regex_search('(?<=\d)\d+') }}

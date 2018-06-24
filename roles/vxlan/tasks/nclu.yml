@@ -1,0 +1,44 @@
+- name: configure clag anycast ip
+  nclu:
+    template: |
+      add loopback lo clag vxlan-anycast-ip {{ clag_vxlan_anycast_subnet | ipsubnet(32, rack_id) | ipaddr('address') }}
+    commit: true
+
+- name: configure l2 vni
+  nclu:
+    template: |
+      {% for vlan in vlans %}
+      {% set vxlan_id = vxlan_base_id + vlan.id %}
+      add vxlan vni{{ vxlan_id }} vxlan id {{ vxlan_id }}
+      add vxlan vni{{ vxlan_id }} bridge learning off
+      add vxlan vni{{ vxlan_id }} bridge access {{ vlan.id }}
+      add vxlan vni{{ vxlan_id }} bridge arp-nd-suppress on
+      add vxlan vni{{ vxlan_id }} vxlan local-tunnelip {{ loopback_ipv4 | ipaddr('address') }}
+      {% endfor %}
+    commit: true
+  when: vlans is iterable
+
+- name: configure l3 vni
+  nclu:
+    template: |
+      {% set l3vni = vlans | map(attribute='l3vni') | list | unique %}
+      {% for item in l3vni %}
+      {% set vxlan_id = vxlan_base_id + item | int %}
+      add vxlan vni{{ vxlan_id }} vxlan id {{ vxlan_id }}
+      add vxlan vni{{ vxlan_id }} bridge learning off
+      add vxlan vni{{ vxlan_id }} bridge access {{ item }}
+      add vxlan vni{{ vxlan_id }} bridge arp-nd-suppress on
+      add vxlan vni{{ vxlan_id }} vxlan local-tunnelip {{ loopback_ipv4 | ipaddr('address') }}
+      {% endfor %}
+    commit: true
+  when: vlans is iterable
+
+- name: map vrf to l3 vni
+  nclu:
+    template: |
+      {% set l3vni = vlans | map(attribute='l3vni') | list | unique %}
+      {% for item in l3vni %}
+      {% set vrf = tenants_ | selectattr('l3vni', 'equalto', item) | map(attribute='vrf') | list | unique | join('') %}
+      add vrf {{ vrf }} vni {{ vxlan_base_id + item }}
+      {% endfor %}
+    commit: true

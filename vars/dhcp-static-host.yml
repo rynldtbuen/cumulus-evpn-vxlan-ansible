@@ -1,0 +1,17 @@
+static_host:
+  - ddns_name: leaf01
+    hwaddress: 0c:dc:3e:2f:19:00
+  - ddns_name: leaf02
+    hwaddress: 0c:dc:3e:c1:d0:00
+  - ddns_name: leaf03
+    hwaddress: 0c:dc:3e:a1:4e:00
+  - ddns_name: leaf04
+    hwaddress: 0c:dc:3e:18:80:00
+  - ddns_name: border-leaf01
+    hwaddress: 0c:dc:3e:e2:53:00
+  - ddns_name: border-leaf02
+    hwaddress: 0c:dc:3e:7f:1e:00
+  - ddns_name: spine01
+    hwaddress: 0c:dc:3e:ee:a9:00
+  - ddns_name: spine02
+    hwaddress: 0c:dc:3e:6b:52:00

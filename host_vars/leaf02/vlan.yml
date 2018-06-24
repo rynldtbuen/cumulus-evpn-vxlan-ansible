@@ -1,0 +1,7 @@
+vlans:
+  - id: 10
+    l3vni: 2001
+  - id: 11
+    l3vni: 2001
+  - id: 12
+    l3vni: 2002

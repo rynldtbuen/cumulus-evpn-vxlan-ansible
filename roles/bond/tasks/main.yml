@@ -1,0 +1,14 @@
+- name: generate bond vars
+  template:
+    src: bond.j2
+    dest: "{{ config_dir }}/bond.yml"
+  delegate_to: localhost
+  register: bond_vars
+  when: inventory_hostname in groups['leaf']
+
+- name: load host bond vars
+  include_vars:
+    file: "{{ config_dir }}/bond.yml"
+  when: bond_vars is changed
+
+- include: nclu.yml

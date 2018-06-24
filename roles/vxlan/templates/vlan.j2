@@ -1,0 +1,6 @@
+vlans:
+{% set switch_vlans =  l2_bond_ | map(attribute='vlan') | flatten | unique %}
+{% for vlan in switch_vlans if l2_bond_ is iterable %}
+  - id: {{ vlan }}
+    l3vni: {{ tenants_ | selectattr('vlan_id', 'equalto', vlan) | map(attribute='l3vni') | unique | join('') }}
+{% endfor %}

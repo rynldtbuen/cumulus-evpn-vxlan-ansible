@@ -1,0 +1,16 @@
+tenants_:
+{% set default_subnet = '172.16.0.0/16' %}
+{% for item in tenants %}
+{% set l3vni = 2000 + loop.index %}
+{% for vlan in item.vlans %}
+  - vrf: {{ item.vrf }}
+    l3vni: {{ l3vni }}
+    vlan_name: {{ vlan.name }}
+    vlan_id: {{ vlan.id }}
+{% if vlan.subnet is not defined %}
+    subnet: {{ item.base_net_prefix | default(default_subnet) | ipsubnet(item.vlan_prefix | default('24'), loop.index0) }}
+{% else %}
+    subnet: {{ vlan.subnet }}
+{% endif %}
+{% endfor %}
+{% endfor %}

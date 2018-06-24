@@ -1,0 +1,16 @@
+- name: reset to default config
+  hosts: cumulus
+  gather_facts: false
+  tasks:
+
+  - name: net del all
+    shell: "net del all && net commit"
+
+  - name: reboot switch
+    shell: "sleep 5 && reboot"
+    async: 1
+    poll: 0
+
+  - name: check if switch is up
+    wait_for_connection:
+      delay: 20

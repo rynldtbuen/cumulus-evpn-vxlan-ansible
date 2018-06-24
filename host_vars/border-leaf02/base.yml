@@ -1,0 +1,7 @@
+loopback_ipv4: 10.254.3.234/32
+
+bgp_asn: 64552
+
+fabric:
+  - swp15-16
+

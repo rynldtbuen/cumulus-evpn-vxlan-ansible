@@ -1,0 +1,34 @@
+- name: base config
+  nclu:
+    template: |
+      add bgp autonomous-system {{ bgp_asn }}
+      add bgp router-id {{ loopback_ipv4 }}
+      add bgp bestpath as-path multipath-relax
+      add bgp bestpath compare-routerid
+    commit: true
+
+- name: configure neighbor and activate evpn
+  nclu:
+    template: |
+      {% set peer = 'cumulus' %}
+      add bgp neighbor {{ peer }} peer-group
+      add bgp neighbor {{ peer }} remote-as external
+      add bgp neighbor {{ peer }} capability extended-nexthop
+      add bgp neighbor {{ fabric | join(',') }} interface peer-group {{ peer }}
+      add bgp l2vpn evpn neighbor {{ peer }} activate
+    commit: true
+
+- name: advertise vni
+  nclu:
+    template: |
+      add bgp l2vpn evpn advertise-all-vni
+    commit: true
+  when: inventory_hostname in groups['tor']
+
+- name: advertise loopback
+  nclu:
+    template: |
+      add bgp network {{ loopback_ipv4 }}
+      add bgp network {{ clag_vxlan_anycast_subnet | ipsubnet(32, rack_id) }}
+    commit: true
+  when: inventory_hostname in groups['tor']

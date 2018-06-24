@@ -1,0 +1,5 @@
+- name: configure loopback interface
+  nclu:
+    template: |
+      add loopback lo ip address {{ loopback_ipv4 }}
+    commit: true

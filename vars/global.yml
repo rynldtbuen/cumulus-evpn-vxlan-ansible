@@ -1,0 +1,22 @@
+domain_name: cumulusvxgns3.lab
+dns_server: 10.11.12.8
+mgmt_subnet: 10.11.12.0/24
+
+loopback_ipv4_subnet: 10.254.0.0/22
+
+bgp_base_asn:
+  spine: 64512
+  edge-router: 64530
+  border-leaf: 64550
+  leaf: 64580
+
+fabric:
+  spine_to_leaf: swp1
+  spine_to_border-leaf: swp15
+  leaf_to_spine: swp13
+  border-leaf_to_spine: swp15
+
+max_swp: 16
+
+clag_interface: swp15-16
+clag_vxlan_anycast_subnet: 10.127.0.0/24

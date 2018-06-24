@@ -1,0 +1,36 @@
+ddns-updates on;
+ddns-update-style standard;
+default-lease-time 600;
+max-lease-time 7200;
+allow unknown-clients;
+use-host-decl-names on;
+authoritative;
+log-facility local7;
+include "/etc/dhcp/ddns-keys/rndc.key";
+
+zone {{ domain_name }}. {
+        primary {{ dns_server }};
+        key rndc-key;
+}
+
+zone {{ mgmt_subnet | ipaddr('network') | ipaddr('revdns') | regex_search('(\d+)(\w.+)')  }} {
+        primary {{ dns_server }};
+        key rndc-key;
+}
+
+subnet {{ mgmt_subnet | ipaddr('network') }} netmask {{ mgmt_subnet | ipaddr('netmask') }} {
+        range {{ mgmt_subnet | ipaddr('10') | ipaddr('address') }} {{ mgmt_subnet | ipaddr('-16') | ipaddr('address') }};
+        option subnet-mask {{ mgmt_subnet | ipaddr('netmask') }};
+        option routers {{ mgmt_subnet | ipaddr('-2') | ipaddr('address') }};
+        option domain-name-servers {{ dns_server }};
+        option domain-name "{{ domain_name }}";
+        ddns-domainname "{{ domain_name }}.";
+        ddns-rev-domainname "{{ mgmt_subnet | ipaddr('network') | ipaddr('revdns') | regex_search('(\d+)(\w.+)') }}";
+}
+
+{% for host in static_host %}
+host {{ host.ddns_name }}.cumulusvxgns3.lab {
+        hardware ethernet {{ host.hwaddress }};
+        ddns-hostname "{{ host.ddns_name }}";
+}
+{% endfor %}
