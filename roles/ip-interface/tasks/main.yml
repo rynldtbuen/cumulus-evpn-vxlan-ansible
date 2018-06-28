@@ -1,0 +1,13 @@
+- name: generate layer 3 interface
+  template:
+    src: ip-interface.j2
+    dest: "{{ config_dir }}/ip-interface.yml"
+  register: ip_interface_vars
+  delegate_to: localhost
+
+- name: load host vars
+  include_vars:
+    file: "{{ config_dir }}/ip-interface.yml"
+  when: ip_interface_vars is changed
+
+- include: nclu.yml

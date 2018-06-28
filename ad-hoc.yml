@@ -1,0 +1,13 @@
+- name: ad-hoc command
+  hosts: all
+  gather_facts: false
+  vars_prompt:
+    - name: "net_command"
+      prompt: "Enter net command"
+      private: no
+  tasks:
+  - name: net command
+    command: "{{ net_command }}"
+    register: output
+
+  - debug: msg="{{ output }}"

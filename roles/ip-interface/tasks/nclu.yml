@@ -1,0 +1,7 @@
+- name: configure sub vlan interface
+  nclu:
+    template: |
+      {% for item in ip_interface %}
+      add interface {{ item.name }} ip address {{ item.ip_address }}
+      add interface {{ item.name }} vrf {{ item.vrf }}
+      {% endfor %}

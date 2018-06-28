@@ -13,11 +13,19 @@
     - { role: bond, tags: bond }
     - { role: vxlan, tags: vxlan }
     - { role: svi, tags: svi }
-    - { role: svi, tags: svi }
+    - { role: bgp-evpn, tags: bgp-evpn }
 
 - name: border-leaf switch
   hosts: border-leaf
   gather_facts: false
   roles:
     - { role: vxlan, tags: vxlan }
+    - { role: svi, tags: svi }
+    - { role: ip-interface, tags: ip-interface }
+    - { role: bgp-evpn, tags: bgp-evpn }
+
+- name: spine switch
+  hosts: spine
+  gather_facts: false
+  roles:
     - { role: bgp-evpn, tags: bgp-evpn }

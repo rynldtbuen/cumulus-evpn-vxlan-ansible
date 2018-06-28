@@ -20,7 +20,7 @@ bgp_asn:
  {{ bgp_asn_ }}
 {% endfor %}
 
-fabric:
+fabric_:
 {% for group in fabric %}
 {% set local_group = group.split('_to_')[0] %}
 {% set remote_group = group.split('_to_')[1] %}

@@ -1,0 +1,26 @@
+ip_interface:
+{% set l3vni = tenants_ | map(attribute='l3vni') | list | unique %}
+{% for host,value in point_to_point | dictsort %}
+{% set number_of_links =  groups[value.link_to] | length %}
+{% if inventory_hostname in host %}
+{% for x in range(0, number_of_links) %}
+{% set ptp_base_net_prefix = '192.168.0.0/16' | ipsubnet(24, 128 + loop.index0) %}
+{% for item in l3vni %}
+{% set local_iface = value.local_port| regex_search('(\w+\d\S)(?=\d)') | string + (value.local_port | regex_search('(?<=\d\S)\d+') | int + x) | string %}
+  - name: {{ local_iface }}.{{ item }}
+    ip_address: {{ ptp_base_net_prefix | ipsubnet(30, loop.index0) | ipaddr('1') }}
+{% endfor %}
+{% endfor %}
+{% elif inventory_hostname in groups[value.link_to] %}
+{% for x in range(0, number_of_links) if inventory_hostname == groups[value.link_to][x] %}
+{% set ptp_base_net_prefix = '192.168.0.0/16' | ipsubnet(24, 128 + x) %}
+{% for item in l3vni %}
+{% set vrf = tenants_ | selectattr('l3vni', 'equalto', item) | map(attribute='vrf') | list | unique | join('') %}
+  - name: {{ value.remote_port }}.{{ item }}
+    ip_address: {{ ptp_base_net_prefix | ipsubnet(30, loop.index0) | ipaddr('2') }}
+    vrf: {{ vrf }}
+    neighbor: {{ host }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+{% endfor %}

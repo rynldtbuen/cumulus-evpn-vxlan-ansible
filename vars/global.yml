@@ -20,3 +20,9 @@ max_swp: 16
 
 clag_interface: swp15-16
 clag_vxlan_anycast_subnet: 10.127.0.0/24
+
+point_to_point:
+  edge-router01:
+    local_port: GigabitEthernet0/0
+    link_to: border-leaf
+    remote_port: swp1

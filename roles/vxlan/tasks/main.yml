@@ -4,6 +4,7 @@
     dest: "{{ config_dir }}/vlan.yml"
   register: vlan_vars
   delegate_to: localhost
+  when: l2_bond_ is defined
 
 - name: load host vlan vars
   include_vars:

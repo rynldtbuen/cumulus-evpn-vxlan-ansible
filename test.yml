@@ -5,22 +5,3 @@
 
   - include_vars:
       dir: "{{ playbook_dir }}/vars"
-  - set_fact:
-      test00: |
-        {% for rack in l2_bond if rack | regex_search('(?<=\d)\d+') | int == rack_id | int %}
-        {% for item in l2_bond[rack] %}
-        {% set vrf = tenants_ | selectattr('vlan_name', 'equalto', item.vids.split(',')[0]) | map(attribute='vrf') | join('') %}
-          - name: {{ item.name + vrf | string }}
-            slaves: {{ item.slaves }}
-            clag_id: {{ loop.index }}
-            mode: {{ 'access' if item.vids | wordcount == 1 else 'trunk' }}
-            vlan:
-        {% for vlan in item.vids.split(',') %}
-              - {{ tenants_ | selectattr('vlan_name', 'equalto', vlan) | map(attribute='vlan_id') | join('') }}
-        {% endfor %}
-        {% endfor %}
-        {% endfor %}
-
-    when: l2_bond_ is iterable
-  - debug: msg="{{ test00.split('\n')}}"
-    when: l2_bond_ is iterable

@@ -1,8 +1,0 @@
-loopback_ipv4: 10.254.0.3/32
-
-bgp_asn: 64583
-
-fabric:
-  - swp13-14
-
-rack_id: 2
