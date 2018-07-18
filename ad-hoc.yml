@@ -1,4 +1,4 @@
-# Convenient play to run a add/del/show command not in the roles to remote switch
+# Convenient play to run a add/del/show command
 - name: ad-hoc
   hosts: cumulus
   gather_facts: false
