@@ -2,7 +2,7 @@
   hosts: localhost
   gather_facts: false
   tasks:
-  - name: load dhcp static host variables
+  - name: load variables
     include_vars: "{{ item }}"
     with_items:
         - "{{ playbook_dir }}/vars/dhcp-static-host.yml"
@@ -29,7 +29,6 @@
   - name: extract list of host from dhcp.conf
     shell: 'cat templates/dhcpd.conf'
     register: dhcp
-    changed_when: false
 
   - name: set new host
     set_fact: dhcp_host="{{ dhcp.stdout | regex_findall('(?<=host )(\w+\S+)') | unique }}"
