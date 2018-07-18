@@ -1,3 +1,5 @@
+# Global required variables, change to your liking.
+
 loopback_ipv4_subnet: 10.254.0.0/22
 
 bgp_base_asn: # The base BGP ASN assign to each group

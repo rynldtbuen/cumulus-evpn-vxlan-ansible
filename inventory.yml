@@ -1,3 +1,4 @@
+# The topology is using Dynamic DNS
 - name: update dhcp.conf and inventory file
   hosts: localhost
   gather_facts: false

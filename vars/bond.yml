@@ -1,3 +1,4 @@
+# List of bond slaves interface and assigned vlan/s
 l2_bond:
 #  rack01:
 #    - { slaves: swp1, vids: vlan10 }

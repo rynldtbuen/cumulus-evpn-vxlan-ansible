@@ -1,3 +1,4 @@
+# List of tenants and assigned vlans
 tenants:
 #  - vrf: cust1
 #    vlans:
