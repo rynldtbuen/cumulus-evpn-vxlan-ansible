@@ -1,33 +1,9 @@
-- name: update dhcp static host
-  hosts: localhost
+- name: bootstrap
+  hosts: cumulus
   gather_facts: false
   tasks:
-  - name: load dhcp static host variables
-    include_vars: "{{ item }}"
-    with_items:
-        - "{{ playbook_dir }}/vars/dhcp-static-host.yml"
-        - "{{ playbook_dir }}/vars/global.yml"
 
-  - name: generate dhcpd.conf file
-    template:
-      src: dhcpd.j2
-      dest: "{{ playbook_dir }}/templates/dhcpd.conf"
-    register: dhcpd_conf
-
-  - name: copy dhcp.conf
-    copy:
-      src: "{{ playbook_dir }}/templates/dhcpd.conf"
-      dest: /etc/dhcp/dhcpd.conf
-
-  - name: restart isc-dhcp-server
-    systemd: name="isc-dhcp-server" state=restarted
-
-- name: setup authorized_key
-  hosts: "{{ target }}"
-  gather_facts: false
-  tasks:
-  - name: check if switch is up
-    wait_for_connection: delay=5
+  - ping:
 
   - name: upload ssh key
     authorized_key:
@@ -35,23 +11,41 @@
       key: "{{ lookup('file', '/home/reynold/.ssh/id_rsa.pub') }}"
       state: present
 
-  - name: update system cache
-    apt: update_cache=yes
+  - name: check if internet is reachable
+    shell: 'ping -c 5 www.google.com'
+    register: ping
+    async: 100
+    poll: 4
+    failed_when: ping.rc == 2
+    changed_when: false
 
-  - name: upgrade system
-    apt: upgrade=yes
+  - fail:
+      msg: "unable to reach the internet"
+    when: ping.rc == 1
+
+  - name: update system
+    apt: update_cache=yes upgrade=yes
+    async: 1000
+    poll: 10
 
   - name: add mgmt vrf
     shell: "net add vrf mgmt && net commit"
     async: 1
     poll: 0
+    tags: mgmt_vrf
+
   - name: reconnect to switch
-    wait_for_connection:
-      delay: 3
+    wait_for_connection: delay=5
+    tags: mgmt_vrf
+
   - name: reboot switch
     shell: "sleep 5 && reboot"
     async: 1
     poll: 0
-  - name: check if switch is up
-    wait_for_connection:
-      delay: 20
+
+  - name: waif for switch to boot up
+    wait_for_connection: delay=20
+
+  - name: add netq server
+    shell: "netq config add server 10.11.12.8 vrf mgmt && netq config restart agent"
+    tags: netq_config

@@ -1,36 +1,39 @@
 ddns-updates on;
 ddns-update-style standard;
-default-lease-time 600;
-max-lease-time 7200;
-allow unknown-clients;
+deny unknown-clients;
+deny client-updates;
 use-host-decl-names on;
 authoritative;
 log-facility local7;
 include "/etc/dhcp/ddns-keys/rndc.key";
 
 zone {{ domain_name }}. {
-        primary {{ dns_server }};
+        primary {{ name_server }};
         key rndc-key;
 }
 
-zone {{ mgmt_subnet | ipaddr('network') | ipaddr('revdns') | regex_search('(\d+)(\w.+)')  }} {
-        primary {{ dns_server }};
+zone {{ oob_mgmt_subnet | ipaddr('network') | ipaddr('revdns') | regex_search('(\d+)(\w.+)')  }} {
+        primary {{ name_server }};
         key rndc-key;
 }
 
-subnet {{ mgmt_subnet | ipaddr('network') }} netmask {{ mgmt_subnet | ipaddr('netmask') }} {
-        range {{ mgmt_subnet | ipaddr('10') | ipaddr('address') }} {{ mgmt_subnet | ipaddr('-16') | ipaddr('address') }};
-        option subnet-mask {{ mgmt_subnet | ipaddr('netmask') }};
-        option routers {{ mgmt_subnet | ipaddr('-2') | ipaddr('address') }};
-        option domain-name-servers {{ dns_server }};
+subnet {{ oob_mgmt_subnet | ipaddr('network') }} netmask {{ oob_mgmt_subnet | ipaddr('netmask') }} {
+        range {{ oob_mgmt_subnet | ipaddr('10') | ipaddr('address') }} {{ oob_mgmt_subnet | ipaddr('50') | ipaddr('address') }};
+        option subnet-mask {{ oob_mgmt_subnet | ipaddr('netmask') }};
+        option routers {{ oob_mgmt_subnet | ipaddr('-2') | ipaddr('address') }};
+        option domain-name-servers {{ name_server }};
         option domain-name "{{ domain_name }}";
         ddns-domainname "{{ domain_name }}.";
-        ddns-rev-domainname "{{ mgmt_subnet | ipaddr('network') | ipaddr('revdns') | regex_search('(\d+)(\w.+)') }}";
-}
+        ddns-rev-domainname "{{ oob_mgmt_subnet | ipaddr('network') | ipaddr('revdns') | regex_search('(\d+)(\w.+)') }}";
+
+        default-lease-time 86400;
+        max-lease-time 86400;
 
 {% for host in static_host %}
-host {{ host.ddns_name }}.cumulusvxgns3.lab {
+        host {{ host.ddns_name }}.cumulusvxgns3.lab {
         hardware ethernet {{ host.hwaddress }};
         ddns-hostname "{{ host.ddns_name }}";
-}
+        }
 {% endfor %}
+
+}

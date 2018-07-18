@@ -1,7 +1,6 @@
-- name: test play
+- name: test play1
   hosts: all
   gather_facts: false
   tasks:
-
   - include_vars:
       dir: "{{ playbook_dir }}/vars"

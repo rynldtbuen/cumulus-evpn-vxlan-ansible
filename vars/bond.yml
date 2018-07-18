@@ -1,21 +1,7 @@
 l2_bond:
-  rack01:
-    - name: host01
-      slaves: swp1
-      vids: vlan10,vlan11
-    - name: host02
-      slaves: swp2
-      vids: vlan10
-    - name: host01
-      slaves: swp3
-      vids: vlan12
-  rack02:
-    - name: host01
-      slaves: swp1
-      vids: vlan10,vlan11
-    - name: host02
-      slaves: swp2
-      vids: vlan10
-    - name: host01
-      slaves: swp3
-      vids: vlan12
+#  rack01:
+#    - { slaves: swp1, vids: vlan10 }
+#    - { slaves: swp2, vids: vlan11 }
+#  rack02:
+#    - { slaves: swp1, vids: vlan10 }
+#    - { slaves: swp2, vids: vlan11 }

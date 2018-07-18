@@ -15,4 +15,6 @@
   set_fact:
     vxlan_base_id: 100000
 
+- include: nclu2.yml
+  when: vlans is defined
 - include: nclu.yml

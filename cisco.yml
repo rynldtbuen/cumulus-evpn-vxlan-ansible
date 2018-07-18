@@ -1,6 +1,0 @@
-- name: cisco switch
-  hosts: edge-router
-  gather_facts: false
-  roles:
-    - { role: setup, tags: always }
-    - { role: ip-interface, tags: ip-interface }

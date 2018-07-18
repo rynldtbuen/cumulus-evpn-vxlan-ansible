@@ -1,0 +1,28 @@
+- name: net show bridge vlan json
+  command: net show bridge vlan json
+  register: net_show_bridge_vlan
+
+- set_fact:
+    bridge_vlan: "{{ net_show_bridge_vlan.stdout }}"
+
+- set_fact:
+    vlan_01: |
+      {% set vlan_a = vlans | map(attribute='id') | list %}
+      {% set vlan_b = vlans | map(attribute='l3vni') | list | unique %}
+      {% set vlan_c = vlan_a + vlan_b + [1] %}
+      {{ vlan_c | sort }}
+
+- set_fact:
+    vlan_02: "{{ bridge_vlan.values() | flatten | map(attribute='vlan') | list | unique | sort }}"
+
+- set_fact:
+    vlan_03: "{{ vlan_02 | difference(vlan_01) }}"
+
+- name: delete vlan and vxlan
+  nclu:
+    template: |
+      {% for item in vlan_03 %}
+      del vlan {{ item }}
+      del vxlan vni{{ vxlan_base_id + item }}
+      {% endfor %}
+  when: "vlan_03 != '[]'"

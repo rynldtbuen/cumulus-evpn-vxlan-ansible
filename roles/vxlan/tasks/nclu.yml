@@ -3,6 +3,7 @@
     template: |
       add loopback lo clag vxlan-anycast-ip {{ clag_vxlan_anycast_subnet | ipsubnet(32, rack_id) | ipaddr('address') }}
     commit: true
+  when: inventory_hostname in groups['leaf']
 
 - name: configure l2 vni
   nclu:
@@ -44,7 +45,7 @@
     commit: true
   when: vlans is defined and vlans is iterable
 
-- name: configure l3 vni (border-leaf)
+- name: configure l3 vni
   nclu:
     template: |
       {% set l3vni = tenants_ | map(attribute='l3vni') | list | unique %}
@@ -59,7 +60,7 @@
     commit: true
   when: inventory_hostname in groups['border-leaf']
 
-- name: map vrf to l3 vni (border-leaf)
+- name: map vrf to l3 vni
   nclu:
     template: |
       {% set l3vni = tenants_ | map(attribute='l3vni') | list | unique %}

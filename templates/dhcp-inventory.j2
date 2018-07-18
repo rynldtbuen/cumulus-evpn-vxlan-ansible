@@ -2,18 +2,19 @@ localhost ansible_connection=local ansible_become=true ansible_become_pass=admin
 oob-mgmt01 ansible_become=true ansible_become_pass=CumulusLinux! ansible_ssh_user=cumulus
 
 [leaf]
-leaf01
-leaf02
-leaf03
-leaf04
+{% for host in dhcp_host if host.split('0')[0] == 'leaf' %}
+{{ host.split('.')[0] }}
+{% endfor %}
 
 [border-leaf]
-border-leaf01
-border-leaf02
+{% for host in dhcp_host if host.split('0')[0] == 'border-leaf' %}
+{{ host.split('.')[0] }}
+{% endfor %}
 
 [spine]
-spine01
-spine02
+{% for host in dhcp_host if host.split('0')[0] == 'spine' %}
+{{ host.split('.')[0] }}
+{% endfor %}
 
 [tor:children]
 leaf
@@ -32,6 +33,3 @@ leaf
 border-leaf
 spine
 edge-router
-
-[server]
-host0[1:4] ansible_python_interpreter=/usr/bin/python3.6 ansible_user=reynold ansible_become_pass=admin ansible_become=true

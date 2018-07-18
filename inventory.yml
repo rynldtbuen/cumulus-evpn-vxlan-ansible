@@ -1,0 +1,42 @@
+- name: update dhcp.conf and inventory file
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: load dhcp static host variables
+    include_vars: "{{ item }}"
+    with_items:
+        - "{{ playbook_dir }}/vars/dhcp-static-host.yml"
+        - "{{ playbook_dir }}/vars/global.yml"
+
+  - name: generate dhcpd.conf file
+    template:
+      src: dhcpd.j2
+      dest: "{{ playbook_dir }}/templates/dhcpd.conf"
+    register: dhcpd_conf
+
+  - name: copy dhcp.conf
+    copy:
+      src: "{{ playbook_dir }}/templates/dhcpd.conf"
+      dest: /etc/dhcp/dhcpd.conf
+    when: dhcpd_conf is changed
+
+  - name: restart isc-dhcp-server
+    systemd:
+      name: "isc-dhcp-server"
+      state: restarted
+    when: dhcpd_conf is changed
+
+  - name: extract list of host from dhcp.conf
+    shell: 'cat templates/dhcpd.conf'
+    register: dhcp
+    changed_when: false
+
+  - name: set new host
+    set_fact: dhcp_host="{{ dhcp.stdout | regex_findall('(?<=host )(\w+\S+)') | unique }}"
+
+  - name: update inventory
+    template:
+      src: 'templates/dhcp-inventory.j2'
+      dest: devices
+
+  - meta: refresh_inventory

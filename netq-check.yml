@@ -1,0 +1,28 @@
+- name: netq check
+  hosts: spine01
+  gather_facts: false
+  tasks:
+
+  - block:
+    - command: netq check clag json
+      register: netq_check_clag
+      failed_when: netq_check_clag.stderr != ""
+      changed_when: false
+    - set_fact:
+        _netq_check_clag: "{{ netq_check_clag.stdout }}"
+    - name: netq check clag json
+      debug:
+        msg: "{{ _netq_check_clag['failedNodes'] if _netq_check_clag['summary']['failedNodeCount'] != 0 else 'Everything is good' }}"
+      failed_when: _netq_check_clag['summary']['failedNodeCount'] != 0
+
+  - block:
+      - command: netq check bgp json
+        register: netq_check_bgp
+        failed_when: netq_check_bgp.stderr != ""
+        changed_when: false
+      - set_fact:
+          _netq_check_bgp: "{{ netq_check_bgp.stdout }}"
+      - name: netq check bgp json
+        debug:
+          msg: "{{ _netq_check_bgp['failedNodes'] if _netq_check_bgp['summary']['failedNodeCount'] != 0 else 'Everything is good' }}"
+        failed_when: _netq_check_bgp['summary']['failedNodeCount'] != 0

@@ -25,7 +25,7 @@
     commit: true
   when: vlans is defined and vlans is iterable
 
-- name: configure vlan interface for l3 vni (border-leaf)
+- name: configure vlan interface for l3 vni
   nclu:
     template: |
       {% set l3vni = tenants_ | map(attribute='l3vni') | list | unique %}

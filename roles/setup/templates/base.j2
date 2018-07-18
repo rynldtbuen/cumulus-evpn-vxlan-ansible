@@ -20,6 +20,7 @@ bgp_asn:
  {{ bgp_asn_ }}
 {% endfor %}
 
+{% if inventory_hostname in groups['cumulus'] %}
 fabric_:
 {% for group in fabric %}
 {% set local_group = group.split('_to_')[0] %}
@@ -30,6 +31,7 @@ fabric_:
   - swp{{ starting_swp }}-{{ starting_swp | int + number_of_links - 1 }}
 {% endif %}
 {% endfor %}
+{% endif %}
 
 {% if inventory_hostname in groups['leaf'] %}
 rack_id:

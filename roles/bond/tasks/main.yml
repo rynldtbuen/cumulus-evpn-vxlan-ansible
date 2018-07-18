@@ -11,4 +11,4 @@
     file: "{{ config_dir }}/bond.yml"
   when: bond_vars is changed
 
-#- include: nclu.yml
+- include: nclu.yml

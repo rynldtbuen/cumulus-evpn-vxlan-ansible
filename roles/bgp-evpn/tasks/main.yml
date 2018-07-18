@@ -25,7 +25,7 @@
     commit: true
   when: inventory_hostname in groups['tor']
 
-- name: advertise loopback
+- name: advertise network
   nclu:
     template: |
       add bgp network {{ loopback_ipv4 }}
@@ -33,7 +33,6 @@
       add bgp network {{ clag_vxlan_anycast_subnet | ipsubnet(32, rack_id) }}
       {% endif %}
     commit: true
-  when: inventory_hostname in groups['tor']
 
 - name: configure bgp vrf
   nclu:

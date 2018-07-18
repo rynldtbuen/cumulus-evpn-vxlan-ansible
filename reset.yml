@@ -6,11 +6,18 @@
   - name: net del all
     shell: "net del all && net commit"
 
+  - name: net del vrf
+    shell: "net del vrf mgmt && net commit"
+    async: 1
+    poll: 0
+
+  - name: reconnection to switch
+    wait_for_connection: delay=5
+
   - name: reboot switch
     shell: "sleep 5 && reboot"
     async: 1
     poll: 0
 
-  - name: check if switch is up
-    wait_for_connection:
-      delay: 20
+  - name: wait for switch to boot up
+    wait_for_connection: delay=20
