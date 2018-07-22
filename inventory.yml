@@ -3,10 +3,12 @@
   gather_facts: false
   tasks:
   - name: load variables
-    include_vars: "{{ item }}"
-    with_items:
-        - "{{ playbook_dir }}/vars/dhcp-static-host.yml"
-        - "{{ playbook_dir }}/vars/global.yml"
+    include_vars: "{{ playbook_dir }}/vars/dhcp-host.yml"
+
+  - name: update inventory
+    template:
+      src: dhcp-inventory.j2
+      dest: devices
 
   - name: generate dhcpd.conf file
     template:
@@ -25,17 +27,5 @@
       name: "isc-dhcp-server"
       state: restarted
     when: dhcpd_conf is changed
-
-  - name: extract list of host from dhcp.conf
-    shell: 'cat templates/dhcpd.conf'
-    register: dhcp
-
-  - name: set new host
-    set_fact: dhcp_host="{{ dhcp.stdout | regex_findall('(?<=host )(\w+\S+)') | unique }}"
-
-  - name: update inventory
-    template:
-      src: 'templates/dhcp-inventory.j2'
-      dest: devices
 
   - meta: refresh_inventory

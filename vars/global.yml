@@ -1,5 +1,3 @@
-# Global required variables, change to your liking.
-
 loopback_ipv4_subnet: 10.254.0.0/22
 
 bgp_base_asn: # The base BGP ASN assign to each group
@@ -10,11 +8,9 @@ bgp_base_asn: # The base BGP ASN assign to each group
 
 fabric:
   spine_to_leaf: swp1 # The starting port connected to leaf switch
-  spine_to_border-leaf: swp15 # The starting port connected to border-leaf switch
-  leaf_to_spine: swp13 # The starting port connected to spine switch
-  border-leaf_to_spine: swp15 # The starting port connected to spine switch
-
-max_swp: 16 # The total ports in the switch. Use to calculate the ports in fabric
+  spine_to_border-leaf: swp23 # The starting port connected to border-leaf switch
+  leaf_to_spine: swp21 # The starting port connected to spine switch
+  border-leaf_to_spine: swp23 # The starting port connected to spine switch
 
 clag_interface: swp15-16 # The port connected to peer switch to form MLAG
 clag_vxlan_anycast_subnet: 10.127.0.0/24 # VTEP IP address
@@ -24,7 +20,3 @@ point_to_point:
     local_port: GigabitEthernet0/0 # The port local of edge-router01 (uplink) connected to border-leaf (downlink)
     link_to: border-leaf # The downlink device
     remote_port: swp1  # The port on border-leaf (downlink) connected to edge-router01 (uplink)
-
-domain_name: cumulusvxgns3.lab
-name_server: 10.11.12.8
-oob_mgmt_subnet: 10.11.12.0/24 # Subnet use on all of the management interface

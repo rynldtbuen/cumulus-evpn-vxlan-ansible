@@ -1,5 +1,5 @@
+# Template that generate inventory hosts base on variables in 'vars/dhcp-host.yml'
 localhost ansible_connection=local ansible_become=true ansible_become_pass=admin
-oob-mgmt01 ansible_become=true ansible_become_pass=CumulusLinux! ansible_ssh_user=cumulus
 
 [leaf]
 leaf01
@@ -32,6 +32,3 @@ leaf
 border-leaf
 spine
 edge-router
-
-[server]
-host0[1:4] ansible_python_interpreter=/usr/bin/python3.6 ansible_user=reynold ansible_become_pass=admin ansible_become=true

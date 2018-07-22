@@ -1,21 +1,19 @@
-# Template that generate inventory base on variables in 'vars/dhcp-static-host.yml' 
-
+# Template that generate inventory hosts base on variables in 'vars/dhcp-host.yml'
 localhost ansible_connection=local ansible_become=true ansible_become_pass=admin
-oob-mgmt01 ansible_become=true ansible_become_pass=CumulusLinux! ansible_ssh_user=cumulus
 
 [leaf]
-{% for host in dhcp_host if host.split('0')[0] == 'leaf' %}
-{{ host.split('.')[0] }}
+{% for host in static_host if host.name.split('0')[0] == 'leaf' %}
+{{ host.name }}
 {% endfor %}
 
 [border-leaf]
-{% for host in dhcp_host if host.split('0')[0] == 'border-leaf' %}
-{{ host.split('.')[0] }}
+{% for host in static_host if host.name.split('0')[0] == 'border-leaf' %}
+{{ host.name }}
 {% endfor %}
 
 [spine]
-{% for host in dhcp_host if host.split('0')[0] == 'spine' %}
-{{ host.split('.')[0] }}
+{% for host in static_host if host.name.split('0')[0] == 'spine' %}
+{{ host.name }}
 {% endfor %}
 
 [tor:children]

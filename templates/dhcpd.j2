@@ -1,4 +1,4 @@
-# Template that generate 'dhcpd.conf' in localhost
+# Template that generate '/etc/dhcp/dhcpd.conf' file
 ddns-updates on;
 ddns-update-style standard;
 deny unknown-clients;
@@ -7,6 +7,8 @@ use-host-decl-names on;
 authoritative;
 log-facility local7;
 include "/etc/dhcp/ddns-keys/rndc.key";
+default-lease-time 86400;
+max-lease-time 86400;
 
 zone {{ domain_name }}. {
         primary {{ name_server }};
@@ -19,7 +21,7 @@ zone {{ oob_mgmt_subnet | ipaddr('network') | ipaddr('revdns') | regex_search('(
 }
 
 subnet {{ oob_mgmt_subnet | ipaddr('network') }} netmask {{ oob_mgmt_subnet | ipaddr('netmask') }} {
-        range {{ oob_mgmt_subnet | ipaddr('10') | ipaddr('address') }} {{ oob_mgmt_subnet | ipaddr('50') | ipaddr('address') }};
+        range {{ oob_mgmt_subnet | ipaddr(subnet_range_start) | ipaddr('address') }} {{ oob_mgmt_subnet | ipaddr(subnet_range_end) | ipaddr('address') }};
         option subnet-mask {{ oob_mgmt_subnet | ipaddr('netmask') }};
         option routers {{ oob_mgmt_subnet | ipaddr('-2') | ipaddr('address') }};
         option domain-name-servers {{ name_server }};
@@ -27,14 +29,12 @@ subnet {{ oob_mgmt_subnet | ipaddr('network') }} netmask {{ oob_mgmt_subnet | ip
         ddns-domainname "{{ domain_name }}.";
         ddns-rev-domainname "{{ oob_mgmt_subnet | ipaddr('network') | ipaddr('revdns') | regex_search('(\d+)(\w.+)') }}";
 
-        default-lease-time 86400;
-        max-lease-time 86400;
-
 {% for host in static_host %}
-        host {{ host.ddns_name }}.cumulusvxgns3.lab {
-        hardware ethernet {{ host.hwaddress }};
-        ddns-hostname "{{ host.ddns_name }}";
+{% set fixed_addr = 50 %}
+        host {{ host.name }}.cumulusvxgns3.lab {
+            hardware ethernet {{ host.hwaddress }};
+            fixed-address {{ oob_mgmt_subnet | ipaddr(fixed_addr + loop.index) | ipaddr('address') }};
+            ddns-hostname "{{ host.name }}";
         }
 {% endfor %}
-
 }
