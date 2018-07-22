@@ -2,6 +2,7 @@
   hosts: localhost
   gather_facts: false
   tasks:
+
   - name: load variables
     include_vars: "{{ playbook_dir }}/vars/dhcp-host.yml"
 
@@ -9,6 +10,8 @@
     template:
       src: dhcp-inventory.j2
       dest: devices
+
+  - meta: refresh_inventory
 
   - name: generate dhcpd.conf file
     template:
@@ -27,5 +30,3 @@
       name: "isc-dhcp-server"
       state: restarted
     when: dhcpd_conf is changed
-
-  - meta: refresh_inventory

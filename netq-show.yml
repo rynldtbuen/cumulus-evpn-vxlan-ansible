@@ -9,6 +9,7 @@
       prompt: "netq show"
       private: no
   tasks:
+  
   - command: netq {{ item }} show {{ netq_show }} json
     loop: "{{ netq_host.split(',') }}"
     register: show
