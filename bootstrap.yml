@@ -24,8 +24,6 @@
   - name: update system
     apt: update_cache=yes upgrade=yes
 
-  
-
   - name: add mgmt vrf
     shell: "net add vrf mgmt && net commit"
     async: 1
