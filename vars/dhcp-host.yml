@@ -1,18 +1,18 @@
 domain_name: cumulusvxgns3.lab
 name_server: 172.24.0.10
 oob_mgmt_subnet: 172.24.0.0/24
-subnet_range_start: 200
-subnet_range_end: 240
+subnet_range_start: 51
+subnet_range_end: 200
 
 
 # List of device hostname and hardware address of the management interface for out of band management
 static_host:
-#  - { name: oob-mgmt01, hwaddress: '0c:d7:28:40:10:00' }
-#  - { name: leaf01, hwaddress: '0c:d7:28:e4:75:00' }
-#  - { name: leaf02, hwaddress: '0c:d7:28:0b:d7:00' }
-#  - { name: leaf03, hwaddress: '0c:d7:28:95:89:00' }
-#  - { name: leaf04, hwaddress: '0c:d7:28:97:86:00' }
-#  - { name: border-leaf01, hwaddress: '0c:d7:28:84:4b:00' }
-#  - { name: border-leaf02, hwaddress: '0c:d7:28:b6:90:00' }
-#  - { name: spine01, hwaddress: '0c:d7:28:54:23:00' }
-#  - { name: spine02, hwaddress: '0c:d7:28:0c:8e:00' }
+  - { name: oob-mgmt01, hwaddress: '0c:d7:28:40:10:00' }
+  - { name: leaf01, hwaddress: '0c:d7:28:e4:75:00' }
+  - { name: leaf02, hwaddress: '0c:d7:28:0b:d7:00' }
+  - { name: leaf03, hwaddress: '0c:d7:28:95:89:00' }
+  - { name: leaf04, hwaddress: '0c:d7:28:97:86:00' }
+  - { name: border-leaf01, hwaddress: '0c:d7:28:84:4b:00' }
+  - { name: border-leaf02, hwaddress: '0c:d7:28:b6:90:00' }
+  - { name: spine01, hwaddress: '0c:d7:28:54:23:00' }
+  - { name: spine02, hwaddress: '0c:d7:28:0c:8e:00' }

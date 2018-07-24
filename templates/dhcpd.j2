@@ -15,7 +15,7 @@ zone {{ domain_name }}. {
         key rndc-key;
 }
 
-zone {{ oob_mgmt_subnet | ipaddr('network') | ipaddr('revdns') | regex_search('(\d+)(\w.+)')  }} {
+zone {{ oob_mgmt_subnet | ipaddr('network') | ipaddr('revdns') | regex_search('(?<=\d.)(\S+)')  }} {
         primary {{ name_server }};
         key rndc-key;
 }
@@ -27,14 +27,12 @@ subnet {{ oob_mgmt_subnet | ipaddr('network') }} netmask {{ oob_mgmt_subnet | ip
         option domain-name-servers {{ name_server }};
         option domain-name "{{ domain_name }}";
         ddns-domainname "{{ domain_name }}.";
-        ddns-rev-domainname "{{ oob_mgmt_subnet | ipaddr('network') | ipaddr('revdns') | regex_search('(\d+)(\w.+)') }}";
+        ddns-rev-domainname "in-addr.arpa.";
 
 {% for host in static_host %}
-{% set fixed_addr = 50 %}
         host {{ host.name }}.cumulusvxgns3.lab {
-            hardware ethernet {{ host.hwaddress }};
-            fixed-address {{ oob_mgmt_subnet | ipaddr(fixed_addr + loop.index) | ipaddr('address') }};
-            ddns-hostname "{{ host.name }}";
+              hardware ethernet {{ host.hwaddress }};
+              ddns-hostname "{{ host.name }}";
         }
 {% endfor %}
 }

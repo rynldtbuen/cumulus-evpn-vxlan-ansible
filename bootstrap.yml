@@ -14,8 +14,6 @@
   - name: check if internet is reachable
     shell: 'ping -c 5 www.google.com'
     register: ping
-    async: 100
-    poll: 4
     failed_when: ping.rc == 2
     changed_when: false
 
@@ -25,8 +23,8 @@
 
   - name: update system
     apt: update_cache=yes upgrade=yes
-    async: 1000
-    poll: 10
+
+  
 
   - name: add mgmt vrf
     shell: "net add vrf mgmt && net commit"
