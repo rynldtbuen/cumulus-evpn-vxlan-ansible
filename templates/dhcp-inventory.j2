@@ -5,12 +5,10 @@ localhost ansible_connection=local ansible_become=true ansible_become_pass=admin
 {% for host in static_host if host.name.split('0')[0] == 'leaf' %}
 {{ host.name }}
 {% endfor %}
-
 [border-leaf]
 {% for host in static_host if host.name.split('0')[0] == 'border-leaf' %}
 {{ host.name }}
 {% endfor %}
-
 [spine]
 {% for host in static_host if host.name.split('0')[0] == 'spine' %}
 {{ host.name }}
