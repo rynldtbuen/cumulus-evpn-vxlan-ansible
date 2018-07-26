@@ -1,0 +1,9 @@
+- name: test 000
+  hosts: all
+  gather_facts: false
+  tasks:
+
+  - include_vars:
+      dir: vars
+
+  
