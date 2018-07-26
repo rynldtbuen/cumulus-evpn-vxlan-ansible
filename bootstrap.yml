@@ -43,5 +43,5 @@
     wait_for_connection: delay=20
 
   - name: add netq server
-    shell: "netq config add server 172.24.0.10 vrf mgmt && netq config restart agent"
+    shell: "netq config add server {{ name_server }} vrf mgmt && netq config restart agent"
     tags: netq_config
