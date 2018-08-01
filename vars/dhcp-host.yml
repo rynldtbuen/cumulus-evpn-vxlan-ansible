@@ -7,11 +7,11 @@ subnet_range_end: 200
 
 # List of device hostname and hardware address of the management interface for out of band management
 static_host:
-  - { name: leaf01, hwaddress: '0c:23:00:b9:0f:00' }
-  - { name: leaf02, hwaddress: '0c:23:00:aa:ad:00' }
-  - { name: leaf03, hwaddress: '0c:23:00:eb:bc:00' }
-  - { name: leaf04, hwaddress: '0c:23:00:08:fb:00' }
-  - { name: border-leaf01, hwaddress: '0c:23:00:56:d5:00' }
-  - { name: border-leaf02, hwaddress: '0c:23:00:0e:13:00' }
-  - { name: spine01, hwaddress: '0c:23:00:94:42:00' }
-  - { name: spine02, hwaddress: '0c:23:00:ee:fb:00' }
+  - { name: leaf01, hwaddress: '52:42:2e:3d:95:00' }
+  - { name: leaf02, hwaddress: '52:42:2e:e3:05:00' }
+  - { name: leaf03, hwaddress: '52:42:2e:f2:c3:00' }
+  - { name: leaf04, hwaddress: '52:42:2e:3d:25:00' }
+  - { name: border-leaf01, hwaddress: '52:42:2e:e6:ac:00' }
+  - { name: border-leaf02, hwaddress: '52:42:2e:55:8c:00' }
+  - { name: spine01, hwaddress: '52:42:2e:01:e2:00' }
+  - { name: spine02, hwaddress: '52:42:2e:23:8b:00' }
