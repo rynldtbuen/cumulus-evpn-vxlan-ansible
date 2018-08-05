@@ -1,8 +1,8 @@
-# List of bond slaves interface and assigned vlan/s
-l2_bond:
+# server facing bond interface and assigned vlan/s
+bonding:
   rack01:
-    - { slaves: swp1, vids: vlan15 }
-    - { slaves: swp2, vids: vlan16 }
+    - { slaves: swp1, vids: 'vlan15, vlan16' }
+    - { slaves: swp2, vids: 'vlan16, vlan15' }
     - { slaves: swp3, vids: vlan38 }
   rack02:
     - { slaves: swp1, vids: vlan38 }

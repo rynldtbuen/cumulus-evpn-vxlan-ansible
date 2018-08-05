@@ -1,3 +1,23 @@
+- name: tenant vlans
+  set_fact:
+    tenant_vlans: |
+      {% set tenant_vlans_ = tenants | map(attribute='vlans') | flatten %}
+      {% set tenant_vlan_names = tenant_vlans_ | map(attribute='name') | list %}
+      {{ tenant_vlan_names }}
+
+- name: host bond vlans
+  set_fact:
+    host_bond_vids: |
+      {% set host_vlans = bonding | dict2items | map(attribute='host_bond') | flatten %}
+      {% set host_vlans_ = host_vlans | map(attribute='vids') | list | unique %}
+      {{ host_vlans_ }}
+
+- name: check if host bond vlan in tenant vlans
+  fail:
+    msg: "{{ item }} not found on tenant vlans"
+  when: item not in tenant_vlans
+  loop: "{{ host_bond_vlans }}"
+
 - name: generate bond vars
   template:
     src: bond.j2
@@ -10,5 +30,7 @@
   include_vars:
     file: "{{ config_dir }}/bond.yml"
   when: bond_vars is changed
+
+- include: nclu2.yml
 
 - include: nclu.yml

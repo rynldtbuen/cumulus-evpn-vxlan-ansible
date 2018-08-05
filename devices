@@ -2,10 +2,16 @@
 localhost ansible_connection=local ansible_become=true ansible_become_pass=admin
 
 [leaf]
-
+leaf01
+leaf02
+leaf03
+leaf04
 [border-leaf]
-
+border-leaf01
+border-leaf02
 [spine]
+spine01
+spine02
 
 [tor:children]
 leaf

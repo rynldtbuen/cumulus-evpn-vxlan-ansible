@@ -1,13 +1,13 @@
-l2_bond_:
-{% for rack in l2_bond if rack | regex_search('(?<=\d)\d+') | int == rack_id | int %}
-{% for item in l2_bond[rack] %}
-{% set vrf = tenants_ | selectattr('vlan_name', 'equalto', item.vids.split(',')[0]) | map(attribute='vrf') | join('') %}
-  - name: {{ 'bond0' + (loop.index) | string  + vrf }}
-    slaves: {{ item.slaves }}
+bonding_:
+{% for item in bonding if item.rack | regex_search('(?<=\d)\d+') | int == rack_id | int %}
+{% for item1 in item.host_bond %}
+{% set vrf = tenants_ | selectattr('vlan_name', 'equalto', item1.vids.split(',')[0]) | map(attribute='vrf') | join('') %}
+  - name: {{ 'bond' + (loop.index) | string + '-' + vrf }}
+    slaves: {{ item1.slaves }}
     clag_id: {{ loop.index }}
-    mode: {{ 'access' if item.vids | wordcount == 1 else 'trunk' }}
-    vlan:
-{% for vlan in item.vids.split(',') %}
+    mode: {{ 'access' if item1.vids | wordcount == 1 else 'trunk' }}
+    vlans:
+{% for vlan in item1.vids.split(',') %}
       - {{ tenants_ | selectattr('vlan_name', 'equalto', vlan) | map(attribute='vlan_id') | join('') }}
 {% endfor %}
 {% endfor %}

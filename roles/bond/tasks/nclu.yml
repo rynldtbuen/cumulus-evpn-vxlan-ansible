@@ -1,14 +1,14 @@
-- name: configure l2 bond interface
+- name: configure host bond
   nclu:
     template: |
-      {% for item in l2_bond_ %}
+      {% for item in bonding_ %}
       add bond {{ item.name }} bond slaves {{ item.slaves }}
       add bond {{ item.name }} clag id {{ item.clag_id }}
       {% if item.mode == 'access' %}
-      add bond {{ item.name }} bridge access {{ item.vlan | join(',') }}
+      add bond {{ item.name }} bridge access {{ item.vlans | join(',') }}
       {% else %}
-      add bond {{ item.name }} bridge trunk vlans {{ item.vlan | join(',') }}
+      add bond {{ item.name }} bridge trunk vlans {{ item.vlans | join(',') }}
       {% endif %}
       {% endfor %}
     commit: true
-  when: l2_bond_ is iterable
+  when: bonding_ is iterable

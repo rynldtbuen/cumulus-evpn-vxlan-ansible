@@ -1,16 +1,16 @@
-# List of tenants and assigned vlans
+# List of tenants and corresponding vlans
 tenants:
   - vrf: cust1
     vlans:
-      - name: vlan10
+      - name: vlan15
         id: 15
-      - name: vlan11
+      - name: vlan16
         id: 16
   - vrf: cust2
     vlans:
-      - name: vlan12
+      - name: vlan38
         id: 38
-      - name: vlan13
+      - name: vlan39
         id: 39
 #  - vrf: sample01
 #    base_net_prefix: 172.16.0.0/16

@@ -3,6 +3,9 @@
   gather_facts: false
   tasks:
 
+  - name: load variables dhcp
+    include_vars: "{{ playbook_dir }}/vars/dhcp-host.yml"
+
   - ping:
 
   - name: upload ssh key
@@ -14,34 +17,34 @@
   - name: check if internet is reachable
     shell: 'ping -c 5 www.google.com'
     register: ping
-    failed_when: ping.rc == 2
+    failed_when: ping.rc == 2 or ping.rc == 1
     changed_when: false
+    tags: update
 
-  - fail:
-      msg: "unable to reach the internet"
-    when: ping.rc == 1
-
-  - name: update system
-    apt: update_cache=yes upgrade=yes
-
-  - name: add mgmt vrf
-    shell: "net add vrf mgmt && net commit"
-    async: 1
-    poll: 0
-    tags: mgmt_vrf
-
-  - name: reconnect to switch
-    wait_for_connection: delay=5
-    tags: mgmt_vrf
+  - name: update packages
+    apt: update_cache=yes upgrade=dist
+    register: update
+    tags: update
 
   - name: reboot switch
     shell: "sleep 5 && reboot"
     async: 1
     poll: 0
+    when: update is changed
 
   - name: waif for switch to boot up
     wait_for_connection: delay=20
+    when: update is changed
+
+  - name: add mgmt vrf
+    shell: "net add vrf mgmt && net commit"
+    async: 1
+    poll: 0
+    register: mgmt_vrf
+
+  - name: reconnect to switch
+    wait_for_connection: delay=5
+    when: mgmt_vrf is changed
 
   - name: add netq server
     shell: "netq config add server {{ name_server }} vrf mgmt && netq config restart agent"
-    tags: netq_config

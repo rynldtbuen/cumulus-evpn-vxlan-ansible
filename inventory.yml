@@ -3,7 +3,7 @@
   gather_facts: false
   tasks:
 
-  - name: load variables
+  - name: load variables dhcp
     include_vars: "{{ playbook_dir }}/vars/dhcp-host.yml"
 
   - name: update inventory

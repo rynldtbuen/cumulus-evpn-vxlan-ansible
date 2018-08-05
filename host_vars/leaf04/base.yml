@@ -1,0 +1,8 @@
+loopback_ipv4: 10.254.0.4/32
+
+bgp_asn: 64584
+
+fabric_:
+  - swp21-22
+
+rack_id: 2
