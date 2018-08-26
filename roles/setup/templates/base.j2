@@ -1,22 +1,22 @@
 loopback_ipv4:
 {%- if inventory_hostname in groups['leaf'] %}
-{% set loopback_ipv4_ = loopback_ipv4_subnet | ipsubnet(32, node_id) %}
+{%    set loopback_ipv4_ = loopback_ipv4_subnet | ipsubnet(32, node_id) %}
 {% elif inventory_hostname in groups['spine'] %}
-{% set loopback_ipv4_ = loopback_ipv4_subnet | ipsubnet(32, -(node_id | int + 1)) %}
+{%    set loopback_ipv4_ = loopback_ipv4_subnet | ipsubnet(32, -(node_id | int + 1)) %}
 {% elif inventory_hostname in groups['border-leaf'] %}
-{% set loopback_ipv4_ = loopback_ipv4_subnet | ipsubnet(32, -(node_id | int + 20)) %}
+{%    set loopback_ipv4_ = loopback_ipv4_subnet | ipsubnet(32, -(node_id | int + 20)) %}
 {% elif inventory_hostname in groups['edge-router'] %}
-{% set loopback_ipv4_ = loopback_ipv4_subnet | ipsubnet(32, -(node_id | int + 40)) %}
+{%    set loopback_ipv4_ = loopback_ipv4_subnet | ipsubnet(32, -(node_id | int + 40)) %}
 {% endif %}
  {{ loopback_ipv4_ }}
 
 bgp_asn:
 {%- for group in bgp_base_asn if inventory_hostname in groups[group] %}
-{% if inventory_hostname in groups['spine'] %}
-{% set bgp_asn_ = bgp_base_asn[group] + 0 %}
-{% else %}
-{% set bgp_asn_ = bgp_base_asn[group] + node_id | int %}
-{% endif %}
+{%    if inventory_hostname in groups['spine'] %}
+{%      set bgp_asn_ = bgp_base_asn[group] + 0 %}
+{%    else %}
+{%      set bgp_asn_ = bgp_base_asn[group] + node_id | int %}
+{%    endif %}
  {{ bgp_asn_ }}
 {% endfor %}
 
@@ -27,22 +27,22 @@ fabric_:
 {% set remote_group = group.split('_to_')[1] %}
 {% set number_of_links = groups[remote_group] | length %}
 {% set starting_swp = fabric[group].split('swp')[1] %}
-{% if inventory_hostname in groups[local_group] %}
+{%    if inventory_hostname in groups[local_group] %}
   - swp{{ starting_swp }}-{{ starting_swp | int + number_of_links - 1 }}
-{% endif %}
+{%    endif %}
 {% endfor %}
 {% endif %}
 
 {% if inventory_hostname in groups['leaf'] %}
 rack_id:
 {%- for host in groups['leaf'] if host | regex_search('(?<=\d)\d+') | int is odd %}
-{% if host == inventory_hostname %}
+{%    if host == inventory_hostname %}
  {{ loop.index }}
-{% endif %}
+{%    endif %}
 {% endfor %}
 {% for host in groups['leaf'] if host | regex_search('(?<=\d)\d+') | int is even %}
-{% if host == inventory_hostname %}
+{%    if host == inventory_hostname %}
  {{ loop.index }}
-{% endif %}
+{%    endif %}
 {% endfor %}
 {% endif %}

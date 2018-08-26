@@ -1,0 +1,11 @@
+set interfaces loopback lo address {{ loopback_ipv4 }}
+set protocols bgp {{ bgp_asn }} maximum-paths ebgp 2
+set protocols bgp {{ bgp_asn }} parameters router-id {{ loopback_ipv4 | ipaddr('address') }}
+set protocols bgp {{ bgp_asn }} parameters bestpath compare-routerid
+set protocols bgp {{ bgp_asn }} redistribute static route-map default-originate
+{% for item in ip_sub_interface %}
+{% set neighbor_addr = item.ip_address | ipaddr('0') | ipaddr('2') | ipaddr('address') %}
+set protocols bgp {{ bgp_asn }} neighbor {{ neighbor_addr }} remote-as {{ hostvars[item.neighbor].bgp_asn }}
+set protocols bgp {{ bgp_asn }} neighbor {{ neighbor_addr }} default-originate route-map default-originate
+set protocols bgp {{ bgp_asn }} redistribute static route-map default-originate
+{% endfor %}

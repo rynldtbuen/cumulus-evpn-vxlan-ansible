@@ -1,0 +1,34 @@
+- name: net show bridge vlan json
+  command: net show bridge vlan json
+  register: net_show_bridge_vlan
+  changed_when: false
+
+- name: net_show_bridge_vlan.stdout
+  set_fact:
+    bridge_vlan_cstate: "{{ net_show_bridge_vlan.stdout }}"
+
+- name: vlan intent state
+  set_fact:
+    vlan_istate: |
+      {% if inventory_hostname in groups['leaf'] %}
+      {%    set vlan0 = vlans | map(attribute='id') | list %}
+      {%    set vlan1 = vlans | map(attribute='l3vni') | list | unique %}
+      {% else %}
+      {%    set vlan0 = tenants_ | map(attribute='vlan_id') | list %}
+      {%    set vlan1 = tenants_ | map(attribute='l3vni') | list | unique %}
+      {% endif %}
+      {{ vlan0 + vlan1 }}
+
+- name: delete vlan and vxlan not in intent state
+  nclu:
+    template: |
+      {% set bridge_vlan_cstate_ =  bridge_vlan_cstate.values() | flatten | map(attribute='vlan') | list | unique %}
+      {%    for item in bridge_vlan_cstate_ if item not in vlan_istate %}
+      del vlan {{ item }}
+      {%    endfor %}
+      {%    for key,value in bridge_vlan_cstate.iteritems() %}
+      {%        for item in value if item.vni is defined and item.vlan not in vlan_istate %}
+      del vxlan {{ key }}
+      {%        endfor %}
+      {%    endfor %}
+    commit: true

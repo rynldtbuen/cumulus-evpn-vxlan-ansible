@@ -1,19 +1,17 @@
 bonding_:
-  - name: bond1-cust1
+  - name: bond0
+    description: cust1 bond
     slaves: swp1
     clag_id: 1
-    mode: access
+    mode: trunk
     vlans:
-      - 15
-  - name: bond2-cust1
+      - 10
+      - 11
+  - name: bond1
+    description: cust2 bond
     slaves: swp2
     clag_id: 2
-    mode: access
+    mode: trunk
     vlans:
-      - 16
-  - name: bond3-cust2
-    slaves: swp3
-    clag_id: 3
-    mode: access
-    vlans:
-      - 38
+      - 40
+      - 41

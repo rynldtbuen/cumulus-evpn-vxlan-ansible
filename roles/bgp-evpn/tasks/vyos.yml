@@ -1,0 +1,4 @@
+- name: configure bgp
+  vyos_config:
+    src: vyos.j2
+    save: yes

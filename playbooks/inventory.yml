@@ -4,11 +4,14 @@
   tasks:
 
   - name: load variables dhcp
-    include_vars: "{{ playbook_dir }}/vars/dhcp-host.yml"
+    include_vars: "{{ playbook_vars }}/dhcp-host.yml"
+
+  - fail: msg="DHCP static host is empty. Check the 'vars/dhcp-host.yml'"
+    when: static_host is not sequence
 
   - name: update inventory
     template:
-      src: dhcp-inventory.j2
+      src: devices.j2
       dest: devices
 
   - meta: refresh_inventory
@@ -16,12 +19,12 @@
   - name: generate dhcpd.conf file
     template:
       src: dhcpd.j2
-      dest: "{{ playbook_dir }}/templates/dhcpd.conf"
+      dest: files/dhcpd.conf
     register: dhcpd_conf
 
   - name: copy dhcp.conf
     copy:
-      src: "{{ playbook_dir }}/templates/dhcpd.conf"
+      src: files/dhcpd.conf
       dest: /etc/dhcp/dhcpd.conf
     when: dhcpd_conf is changed
 

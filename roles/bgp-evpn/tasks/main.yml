@@ -1,47 +1,6 @@
-- name: base config
-  nclu:
-    template: |
-      add bgp autonomous-system {{ bgp_asn }}
-      add bgp router-id {{ loopback_ipv4 | ipaddr('address') }}
-      add bgp bestpath as-path multipath-relax
-      add bgp bestpath compare-routerid
-    commit: true
-
-- name: configure neighbor and activate evpn
-  nclu:
-    template: |
-      {% set peer = 'cumulus' %}
-      add bgp neighbor {{ peer }} peer-group
-      add bgp neighbor {{ peer }} remote-as external
-      add bgp neighbor {{ peer }} capability extended-nexthop
-      add bgp neighbor {{ fabric_ | join(',') }} interface peer-group {{ peer }}
-      add bgp l2vpn evpn neighbor {{ peer }} activate
-    commit: true
-
-- name: advertise vni
-  nclu:
-    template: |
-      add bgp l2vpn evpn advertise-all-vni
-    commit: true
-  when: inventory_hostname in groups['tor']
-
-- name: advertise network
-  nclu:
-    template: |
-      add bgp network {{ loopback_ipv4 }}
-      {% if inventory_hostname in groups['leaf'] %}
-      add bgp network {{ clag_vxlan_anycast_subnet | ipsubnet(32, rack_id) }}
-      {% endif %}
-    commit: true
-
-- name: configure bgp vrf
-  nclu:
-    template: |
-      {% for item in ip_interface %}
-      add bgp vrf {{ item.vrf }} autonomous-system {{ bgp_asn }}
-      add bgp vrf {{ item.vrf }} router-id {{ loopback_ipv4 | ipaddr('address') }}
-      add bgp vrf {{ item.vrf }} neighbor {{ item.ip_address | ipaddr('0') | ipaddr('1') | ipaddr('address') }} remote-as {{ hostvars[item.neighbor].bgp_asn }}
-      add bgp vrf {{ item.vrf }} l2vpn evpn advertise ipv4 unicast
-      {% endfor %}
-    commit: true
-  when: inventory_hostname in groups['border-leaf']
+- include: check.yml
+  when: inventory_hostname in groups['cumulus']
+- include: nclu.yml
+  when: inventory_hostname in groups['cumulus']
+- include: vyos.yml
+  when: inventory_hostname in groups['edge-router']

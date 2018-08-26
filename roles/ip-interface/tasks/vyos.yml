@@ -1,0 +1,4 @@
+- name: configure sub interface
+  vyos_config:
+    src: vyos.j2
+    save: yes

@@ -1,40 +1,43 @@
 - name: bootstrap
-  hosts: cumulus
+  hosts: network-device
   gather_facts: false
   tasks:
 
   - name: load variables dhcp
-    include_vars: "{{ playbook_dir }}/vars/dhcp-host.yml"
+    include_vars: "{{ playbook_vars }}/dhcp-host.yml"
+    tags: always
 
   - ping:
 
   - name: upload ssh key
     authorized_key:
-      user: cumulus
+      user: "{{ ansible_user }}"
       key: "{{ lookup('file', '/home/reynold/.ssh/id_rsa.pub') }}"
       state: present
+    tags: ssh_key
 
   - name: check if internet is reachable
     shell: 'ping -c 5 www.google.com'
     register: ping
     failed_when: ping.rc == 2 or ping.rc == 1
-    changed_when: false
     tags: update
 
   - name: update packages
     apt: update_cache=yes upgrade=dist
-    register: update
+    register: update_dist
     tags: update
 
   - name: reboot switch
     shell: "sleep 5 && reboot"
     async: 1
     poll: 0
-    when: update is changed
+    tags: update
+    when: update_dist is changed
 
   - name: waif for switch to boot up
     wait_for_connection: delay=20
-    when: update is changed
+    tags: update
+    when: update_dist is changed
 
   - name: add mgmt vrf
     shell: "net add vrf mgmt && net commit"

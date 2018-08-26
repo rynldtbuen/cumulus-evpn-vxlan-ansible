@@ -1,0 +1,3 @@
+{% for item in ip_sub_interface %}
+set interfaces ethernet {{ item.iface_name.split('.')[0] }} vif {{ item.iface_name.split('.')[1] }} address {{ item.ip_address }}
+{% endfor %}

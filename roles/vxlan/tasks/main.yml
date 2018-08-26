@@ -1,20 +1,16 @@
 - name: generate vlan vars
   template:
     src: vlan.j2
-    dest: "{{ config_dir }}/vlan.yml"
+    dest: "{{ hostvars_dir }}/vlan.yml"
   register: vlan_vars
   delegate_to: localhost
-  when: l2_bond_ is defined
+  when: bonding_ is defined
 
 - name: load host vlan vars
   include_vars:
-    file: "{{ config_dir }}/vlan.yml"
+    file: "{{ hostvars_dir }}/vlan.yml"
   when: vlan_vars is changed
 
-- name: set base vxlan id
-  set_fact:
-    vxlan_base_id: 100000
+- include: check.yml
 
-- include: nclu2.yml
-  when: vlans is defined
 - include: nclu.yml

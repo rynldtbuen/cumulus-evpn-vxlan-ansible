@@ -1,21 +1,21 @@
 tenants_:
   - vrf: cust1
     l3vni: 2001
-    vlan_name: vlan15
-    vlan_id: 15
+    vlan_name: external
+    vlan_id: 10
     subnet: 10.12.0.0/24
   - vrf: cust1
     l3vni: 2001
-    vlan_name: vlan16
-    vlan_id: 16
+    vlan_name: internal
+    vlan_id: 11
     subnet: 10.12.1.0/24
   - vrf: cust2
     l3vni: 2002
-    vlan_name: vlan38
-    vlan_id: 38
+    vlan_name: external
+    vlan_id: 40
     subnet: 10.13.0.0/24
   - vrf: cust2
     l3vni: 2002
-    vlan_name: vlan39
-    vlan_id: 39
+    vlan_name: internal
+    vlan_id: 41
     subnet: 10.13.1.0/24

@@ -23,8 +23,7 @@ border-leaf
 spine
 
 [edge-router]
-edge-router01
-
+edge-router01 ansible_host=172.24.0.254
 [network-device:children]
 leaf
 border-leaf

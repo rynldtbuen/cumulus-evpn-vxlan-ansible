@@ -1,0 +1,26 @@
+- name: net show bgp neighbor json
+  command: net show bgp neighbor json
+  register: net_show_bgp_nei
+  changed_when: false
+
+- name: net_show_bgp_nei.stdout
+  set_fact:
+    bgp_nei_cstate: "{{ net_show_bgp_nei.stdout }}"
+
+- name: bgp peers intent state
+  set_fact:
+    bgp_nei_istate: |
+      {% set bgp_nei_istate_list = [] %}
+      {% for item in fabric_ %}
+      {%    for x in range((item.split('-')[0] | replace('swp', '') | int), (item.split('-')[1] | int) + 1) %}
+      {{ bgp_nei_istate_list.append('swp' + (x | string)) }}
+      {%-   endfor %}
+      {%- endfor %}
+      {{ bgp_nei_istate_list }}
+
+- name: delete bgp neighbor interface not in intent state
+  nclu:
+    template: |
+      {% for item in bgp_nei_cstate | dict2items if item.key not in bgp_nei_istate %}
+      del bgp neighbor {{ item.key }} interface peer-group {{ item.value['peerGroup']}}
+      {% endfor %}

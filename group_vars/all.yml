@@ -1,2 +1,3 @@
-node_id: |
-  {{ inventory_hostname | regex_search('(?<=\d)\d+') }}
+node_id: "{{ inventory_hostname | regex_search('(?<=\\d)\\d+') }}"
+playbook_vars: "{{ playbook_dir | dirname }}/vars"
+playbook_dirname: "{{ playbook_dir | dirname }}"

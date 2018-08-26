@@ -8,9 +8,38 @@
       {% endif %}
       {{ hostvars[peer_sw].loopback_ipv4 | ipaddr('address') }}
 
+- name: net show interface bonds json
+  command: net show interface bonds json
+  register: net_show_iface_bonds
+  changed_when: false
+
+- name: net_show_iface_bonds.stdout
+  set_fact:
+    interface_bonds: "{{ net_show_iface_bonds.stdout }}"
+
+- set_fact:
+    clag_peer_iface_istate: |
+      {% set clag_peer_iface_list = [] %}
+      {% set clag_peer_iface = (clag_peer_interface | replace(', ', ',')).split(',') %}
+      {%    for item in clag_peer_iface %}
+      {%        for x in range(item.split('-')[0] | replace('swp', '') | int, item.split('-')[1] | replace('swp', '') | int + 1) %}
+      {{ clag_peer_iface_list.append( 'swp' + (x | string))  }}
+      {%-        endfor %}
+      {%-   endfor %}
+      {{ clag_peer_iface_list }}
+
+- name: delete peerlink interface which is not in intent state
+  nclu:
+    template: |
+      {% for key, value in interface_bonds.iteritems() if key == 'peerlink' %}
+      {%    for item in value.iface_obj['members'] | dict2items | map(attribute='key') | list if item not in clag_peer_iface_istate %}
+      del bond peerlink bond slaves {{ item }}
+      {%    endfor %}
+      {% endfor %}
+
 - name: configure clag peer
   nclu:
     template: |
       {% set clag_sys_mac = '44:38:39:FF:01:00' | hwaddr('int') - rack_id  %}
-      add clag peer sys-mac {{ clag_sys_mac | hwaddr('linux') }} interface {{ clag_interface }} {{ 'primary' if node_id | int is odd else 'secondary' }} backup-ip {{ clag_backup_ip }}
+      add clag peer sys-mac {{ clag_sys_mac | hwaddr('linux') }} interface {{ clag_peer_interface }} {{ 'primary' if node_id | int is odd else 'secondary' }} backup-ip {{ clag_backup_ip }}
     commit: true

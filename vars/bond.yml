@@ -1,10 +1,10 @@
-# server facing bond interface and assigned vlan/s
+# MLAG bond interface and assigned vlan/s
 bonding:
   rack01:
-    - { slaves: swp1, vids: 'vlan15, vlan16' }
-    - { slaves: swp2, vids: 'vlan16, vlan15' }
-    - { slaves: swp3, vids: vlan38 }
+    host_bond:
+      - { slaves: swp1, vids: '10, 11' }
+      - { slaves: swp2, vids: '40, 41' }
   rack02:
-    - { slaves: swp1, vids: vlan38 }
-    - { slaves: swp2, vids: vlan39 }
-    - { slaves: swp3, vids: vlan15 }
+    host_bond:
+      - { slaves: swp1, vids: '40, 41' }
+      - { slaves: swp2, vids: '10, 11' }
