@@ -1,6 +1,6 @@
 {% set _listen_address = listen_address | default('172.24.0.15')  %}
 {% set _dhcp_range = dhcp_range | default('172.24.0.50,172.24.0.200') %}
-{% set _domain = domain | default('cumulusgns3.lab') %}
+{% set _domain = domain | default('cumulusvxgns3.lab') %}
 {% set _gateway = gateway | default('172.24.0.254') %}
 # Never forward plain names (without a dot or domain part)
 domain-needed
@@ -31,6 +31,15 @@ server={{ _gateway }}
 # you use this.)
 listen-address=127.0.0.1
 listen-address={{ _listen_address }}
+
+# Set the domain for dnsmasq. this is optional, but if it is set, it
+# does the following things.
+# 1) Allows DHCP hosts to have fully qualified domain names, as long
+#     as the domain part matches this setting.
+# 2) Sets the "domain" DHCP option thereby potentially setting the
+#    domain of all systems configured by DHCP
+# 3) Provides the domain part for "expand-hosts"
+domain={{ _domain }}
 
 # Uncomment this to enable the integrated DHCP server, you need
 # to supply the range of addresses available for lease and optionally

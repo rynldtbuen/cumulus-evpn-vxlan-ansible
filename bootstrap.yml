@@ -1,15 +1,7 @@
 - name: bootstrap
   hosts: cumulus
   gather_facts: false
-  vars:
-    netq_server: '172.24.0.10'
   tasks:
-
-  - name: update dhcpd.conf
-    template:
-      src: dhcpd.conf
-      dest: /etc/dhcp/dcpd.conf
-
 
   - ping:
 
@@ -42,7 +34,7 @@
     wait_for_connection: delay=20
     tags: update
     when: update_dist is changed
-  #
+
   - name: add mgmt vrf
     shell: "net add vrf mgmt && net commit"
     async: 5
