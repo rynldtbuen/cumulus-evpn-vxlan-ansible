@@ -1,5 +1,53 @@
-- name: configure loopback interface
+- name: generate host loopback variables
+  shell: 'python scripts/main.py loopback'
+  register: var_output
+  delegate_to: localhost
+  run_once: true
+  changed_when: false
+
+- name: set loopback variables
+  set_fact:
+    loopback: "{{ var_output['stdout'] }}"
+
+- name: net show interface lo
+  nclu:
+    commands:
+      - show conf interface lo
+  register: sh_intf_lo_json
+  changed_when: false
+
+- name: interface lo
+  set_fact:
+    intf_loopback: "{{ sh_intf_lo_json['msg'] }}"
+
+- name: add loopback
   nclu:
     template: |
-      add loopback lo ip address {{ loopback_ipv4 }}
-    commit: true
+      {%  set intent_lo_ips = loopback[inventory_hostname]['ip_addresses'] %}
+      {%  set anycast_ip = loopback[inventory_hostname]['clag_vxlan_anycast_ip'] %}
+      {%  set x = [] %}
+      {%  for item in intf_loopback.split('\n') %}
+      {%    do x.append(item | regex_search('(?!\s+)(address|clagd-vxlan-anycast-ip)\s\S+')) %}
+      {%  endfor %}
+      {%  set y = {} %}
+      {%  for address in x if address is not none %}
+      {%    set name, ip = address.split(' ') %}
+      {%    do y.update({ip: name.replace('-', '_')}) %}
+      {%  endfor %}
+      {%  for l_ip, name in y.items() if name == 'address' and l_ip not in intent_lo_ips %}
+      del loopback lo ip address {{ l_ip }}
+      {%  endfor %}
+      {%  for i_ip in intent_lo_ips %}
+      add loopback lo ip address {{ i_ip }}
+      {%  endfor %}
+      {%  if anycast_ip is not none %}
+      add loopback lo clag vxlan-anycast-ip {{ anycast_ip }}
+      {%  endif %}
+    atomic: true
+  register: nclu
+
+- name: net show commit last
+  nclu:
+    commands:
+      - show commit last
+  when: nclu['changed']

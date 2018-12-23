@@ -1,4 +1,0 @@
-# Default Cumulus VX credentials
-ansible_ssh_user: cumulus
-ansible_become_pass: CumulusLinux!
-ansible_become: true

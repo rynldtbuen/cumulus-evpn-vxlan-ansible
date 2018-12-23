@@ -1,8 +1,8 @@
 - name: configure sub interface
-  nclu:
+  set_fact:
     template: |
-      {% for item in ip_sub_interface %}
-      add interface {{ item.iface_name }} ip address {{ item.ip_address }}
-      add interface {{ item.iface_name }} vrf {{ item.vrf }}
+      {% for vif, value in ip_interface[inventory_hostname]['viface'].items() %}
+      add interface {{ vif }} ip address {{ value.ipv4_address }}
+      add interface {{ vif }} vrf {{ value.vrf }}
       {% endfor %}
-    commit: true
+    # commit: true

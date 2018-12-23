@@ -1,0 +1,32 @@
+- name: generate host bgp variables
+  shell: 'python scripts/main.py bgp'
+  register: var_output
+  delegate_to: localhost
+  run_once: true
+  changed_when: false
+
+- name: set bgp variables
+  set_fact:
+    bgp_neighbors: "{{ var_output['stdout'] }}"
+
+- name: show bgp neighbor json
+  nclu:
+    commands:
+      - show bgp neighbor json
+  register: sh_bgp_nei_json
+  ignore_errors: true
+
+- name: show bgp summary json
+  nclu:
+    commands:
+      - show bgp summary json
+  register: sh_bgp_sum_json
+  ignore_errors: true
+
+- name: bgp neighbors
+  set_fact:
+    _bgp_neighbors: "{{ sh_bgp_nei_json['msg'] }}"
+
+- name: bgp summary
+  set_fact:
+    bgp_sum: "{{ sh_bgp_sum_json['msg'] }}"

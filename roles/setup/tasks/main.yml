@@ -1,33 +1,14 @@
-- name: load user vars
-  include_vars:
-    dir: "{{ playbook_vars }}"
+# - name: load global variables
+#   include_vars:
+#     file: 'master.yml'
 
-- name: set config dir
-  set_fact:
-    hostvars_dir: "{{ playbook_dirname }}/host_vars/{{ inventory_hostname }}"
-
-- name: create host directory vars
-  file:
-    path: "{{ hostvars_dir }}"
-    state: directory
-  delegate_to: localhost
-
-- name: generate host base vars
-  template:
-    src: base.j2
-    dest: "{{ hostvars_dir }}/base.yml"
-  register: base_vars
-  delegate_to: localhost
-
-- name: generate tenant networks
-  template:
-    src: tenants.j2
-    dest: "{{ hostvars_dir }}/tenants.yml"
-  delegate_to: localhost
-  register: tenants_vars
-  when: inventory_hostname in groups['tor'] or inventory_hostname in groups['edge-router']
-
-- name: load host vars
-  include_vars:
-    dir: "{{ hostvars_dir }}"
-  when: base_vars is changed or tenants_vars is changed
+# - name: generate host common variables
+#   shell: 'python scripts/main.py common'
+#   register: var_output
+#   delegate_to: localhost
+#   run_once: true
+#   changed_when: false
+#
+# - name: set common variables
+#   set_fact:
+#     common: "{{ var_output['stdout'] }}"

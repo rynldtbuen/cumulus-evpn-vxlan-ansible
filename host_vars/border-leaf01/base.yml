@@ -1,7 +1,0 @@
-loopback_ipv4: 10.254.3.235/32
-
-bgp_asn: 64551
-
-fabric_:
-  - swp23-24
-

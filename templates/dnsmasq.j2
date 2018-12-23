@@ -1,0 +1,49 @@
+{% set _listen_address = listen_address | default('172.24.0.15')  %}
+{% set _dhcp_range = dhcp_range | default('172.24.0.50,172.24.0.200') %}
+{% set _domain = domain | default('cumulusgns3.lab') %}
+{% set _gateway = gateway | default('172.24.0.254') %}
+# Never forward plain names (without a dot or domain part)
+domain-needed
+# Never forward addresses in the non-routed address spaces.
+bogus-priv
+
+# If you don't want dnsmasq to read /etc/resolv.conf or any other
+# file, getting its servers from this file instead (see below), then
+# uncomment this.
+no-resolv
+
+# If you don't want dnsmasq to poll /etc/resolv.conf or other resolv
+# files for changes and re-read them then uncomment this.
+no-poll
+
+# Add other name servers here, with domain specs if they are for
+# non-public domains.
+server={{ _gateway }}
+
+# If you want dnsmasq to listen for DHCP and DNS requests only on
+# specified interfaces (and the loopback) give the name of the
+# interface (eg eth0) here.
+# Repeat the line for more than one interface.
+#interface=
+# Or you can specify which interface _not_ to listen on
+#except-interface=
+# Or which to listen on by address (remember to include 127.0.0.1 if
+# you use this.)
+listen-address=127.0.0.1
+listen-address={{ _listen_address }}
+
+# Uncomment this to enable the integrated DHCP server, you need
+# to supply the range of addresses available for lease and optionally
+# a lease time. If you have more than one network, you will need to
+# repeat this for each network on which you want to supply DHCP
+# service.
+dhcp-range={{ _dhcp_range }}
+
+# Override the default route supplied by dnsmasq, which assumes the
+# router is the same machine as the one running dnsmasq.
+dhcp-option=option:router,{{ _gateway }}
+
+# Set static host
+{% for host in groups['cumulus'] | sort %}
+dhcp-host={{ hostvars[host]['mgmt_hwaddr'] }},{{ host }}
+{% endfor %}

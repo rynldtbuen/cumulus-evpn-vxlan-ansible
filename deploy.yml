@@ -1,0 +1,33 @@
+- name: LEAF
+  hosts: leaf
+  gather_facts: false
+  any_errors_fatal: true
+  roles:
+    - { role: mlag, tags: mlag }
+    - { role: vxlan, tags: vxlan }
+    - { role: svi, tags: svi }
+    - { role: bgp-evpn, tags: bgp-evpn }
+
+- name: BORDER-LEAF
+  hosts: border
+  gather_facts: false
+  any_errors_fatal: true
+  roles:
+    - { role: vxlan, tags: vxlan }
+    - { role: svi, tags: svi }
+    - { role: ip-interface, tags: ip-interface }
+    - { role: bgp-evpn, tags: bgp-evpn }
+
+- name: SPINE
+  hosts: spine
+  gather_facts: false
+  any_errors_fatal: true
+  roles:
+    - { role: bgp-evpn, tags: bgp-evpn }
+
+- name: EDGE
+  hosts: edge
+  gather_facts: false
+  any_errors_fatal: true
+  roles:
+    - { role: ip-interface, tags: ip-interface }

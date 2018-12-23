@@ -1,6 +1,0 @@
-vlans:
-{% set switch_vlans =  bonding_ | map(attribute='vlans') | flatten | unique %}
-{% for vlan in switch_vlans if bonding_ is iterable %}
-  - id: {{ vlan }}
-    l3vni: {{ tenants_ | selectattr('vlan_id', 'equalto', vlan) | map(attribute='l3vni') | unique | join('') }}
-{% endfor %}

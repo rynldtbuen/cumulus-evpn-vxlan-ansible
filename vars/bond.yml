@@ -1,10 +1,10 @@
 # MLAG bond interface and assigned vlan/s
-bonding:
-  rack01:
-    host_bond:
-      - { slaves: swp1, vids: '10, 11' }
-      - { slaves: swp2, vids: '40, 41' }
-  rack02:
-    host_bond:
-      - { slaves: swp1, vids: '40, 41' }
-      - { slaves: swp2, vids: '10, 11' }
+#bonding:
+#  rack01:
+#    server_bond:
+#      - { slaves: swp1, vids: '10, 11' }
+#      - { slaves: swp2, vids: '40, 41' }
+#  rack02:
+#    server_bond:
+#      - { slaves: swp1, vids: '40, 41' }
+#      - { slaves: swp2, vids: '10, 11' }

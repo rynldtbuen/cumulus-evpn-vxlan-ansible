@@ -1,6 +1,0 @@
-- import_playbook: playbooks/inventory.yml
-  tags: inventory
-- import_playbook: playbooks/bootstrap.yml
-  tags: bootstrap
-- import_playbook: playbooks/deploy.yml
-  tags: deploy

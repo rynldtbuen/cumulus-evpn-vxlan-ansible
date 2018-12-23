@@ -1,11 +1,10 @@
-- name: generate layer 3 interface
-  template:
-    src: ip-interface.j2
-    dest: "{{ hostvars_dir }}/ip-interface.yml"
-  register: ip_interface_vars
+- name: generate host clag variables
+  shell: 'python scripts/main.py ip_interface'
+  register: var_output
   delegate_to: localhost
+  run_once: true
+  changed_when: false
 
-- name: load host vars
-  include_vars:
-    file: "{{ hostvars_dir }}/ip-interface.yml"
-  when: ip_interface_vars is changed
+- name: set ip_interface variables
+  set_fact:
+    ip_interface: "{{ var_output['stdout'] }}"

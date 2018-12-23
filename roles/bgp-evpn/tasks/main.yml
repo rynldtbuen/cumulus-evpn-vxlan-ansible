@@ -1,6 +1,2 @@
-- include: check.yml
-  when: inventory_hostname in groups['cumulus']
-- include: nclu.yml
-  when: inventory_hostname in groups['cumulus']
-- include: vyos.yml
-  when: inventory_hostname in groups['edge-router']
+- import_tasks: setup.yml
+- import_tasks: nclu.yml

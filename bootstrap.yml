@@ -1,0 +1,56 @@
+- name: bootstrap
+  hosts: cumulus
+  gather_facts: false
+  vars:
+    netq_server: '172.24.0.10'
+  tasks:
+
+  - name: update dhcpd.conf
+    template:
+      src: dhcpd.conf
+      dest: /etc/dhcp/dcpd.conf
+
+
+  - ping:
+
+  - name: upload ssh key
+    authorized_key:
+      user: "{{ ansible_user }}"
+      key: "{{ lookup('file', '/home/reynold/.ssh/id_rsa.pub') }}"
+      state: present
+    tags: ssh_key
+
+  - name: check if internet is reachable
+    shell: 'ping -c 5 www.google.com'
+    register: ping
+    failed_when: ping.rc == 2 or ping.rc == 1
+    tags: update
+
+  - name: update packages
+    apt: update_cache=yes upgrade=dist
+    register: update_dist
+    tags: update
+
+  - name: reboot switch
+    shell: "sleep 5 && reboot"
+    async: 5
+    poll: 0
+    tags: update
+    when: update_dist is changed
+
+  - name: wait for switch to boot up
+    wait_for_connection: delay=20
+    tags: update
+    when: update_dist is changed
+  #
+  - name: add mgmt vrf
+    shell: "net add vrf mgmt && net commit"
+    async: 5
+    poll: 0
+    register: mgmt_vrf
+    tags: mgmt
+
+  - name: reconnect to switch
+    wait_for_connection:
+    when: mgmt_vrf is changed
+    tags: mgmt

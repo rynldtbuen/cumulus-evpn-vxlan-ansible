@@ -1,0 +1,27 @@
+- name: configure mlag peerlink
+  nclu:
+    template: |
+      {%  set intent_peer = mlag[inventory_hostname]['peer'] %}
+      {%  set live_peer = {} %}
+      {%    if 'peerlink' in bonds_intfs %}
+      {%      set status = clag_intfs['status'] %}
+      {%      do live_peer.update({
+                  'peerlink_interface': bonds_intfs['peerlink']['iface_obj']['members'].keys() | list | range_to_cluster,
+                  'backup_ip': status['backupIp'],
+                  'role': status['ourRole'],
+                  'system_mac': status['sysMac']
+        })
+      %}
+      {%    endif %}
+      {%  if 'peerlink' in bonds_intfs and intent_peer != live_peer %}
+      del clag peer
+      {%  endif %}
+      add clag peer sys-mac {{ intent_peer['system_mac'] }} interface {{ intent_peer['peerlink_interface'] }} {{ intent_peer['role'] }} backup-ip {{ intent_peer['backup_ip'] }}
+    atomic: true
+  register: nclu
+
+- name: net show commit last
+  nclu:
+    commands:
+      - show commit last
+  when: nclu['changed']

@@ -1,0 +1,20 @@
+- hosts: dhcp_dns01
+  gather_facts: false
+  tasks:
+
+  - template:
+      src: 'dnsmasq.j2'
+      dest: 'templates/dnsmasq.conf'
+    register: temp_dnsmasq
+    delegate_to: localhost
+
+  - copy:
+      src: 'templates/dnsmasq.conf'
+      dest: '/etc/dnsmasq.conf'
+    when: temp_dnsmasq is changed
+
+  - shell: 'dnsmasq --test'
+
+  - systemd:
+      name: dnsmasq
+      state: restarted

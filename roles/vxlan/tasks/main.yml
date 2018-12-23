@@ -1,16 +1,63 @@
-- name: generate vlan vars
-  template:
-    src: vlan.j2
-    dest: "{{ hostvars_dir }}/vlan.yml"
-  register: vlan_vars
+- name: generate host vxlan variables
+  shell: 'python scripts/main.py vxlan'
+  register: var_output
   delegate_to: localhost
-  when: bonding_ is defined
+  run_once: true
+  changed_when: false
 
-- name: load host vlan vars
-  include_vars:
-    file: "{{ hostvars_dir }}/vlan.yml"
-  when: vlan_vars is changed
+- name: set vxlan variables
+  set_fact:
+    vxlan: "{{ var_output['stdout'] }}"
 
-- include: check.yml
+- name: net show config interface
+  nclu:
+    commands:
+      - show config interface
+  register: sh_conf_intf
+  changed_when: false
 
-- include: nclu.yml
+- name: config interface
+  set_fact:
+    config_intf: "{{ sh_conf_intf['msg'] }}"
+
+- name: vxlan interfaces
+  set_fact:
+    vxlan_intfs: |
+      {%  set _vxlan_intfs = [] %}
+      {%  set x = config_intf | regex_findall('^(interface\s\w+)(?:\n+\s+.*){3,5}?(?=\s+vxlan-id\s\d+)$', multiline=True) %}
+      {%  for item in x %}
+      {%    do _vxlan_intfs.append(item.split(' ')[1]) %}
+      {%  endfor %}
+      {{ _vxlan_intfs }}
+
+- name: del vxlan
+  nclu:
+    template: |
+      {%  set intent_vxlan = vxlan[inventory_hostname]['vxlan'] %}
+      {%  for item in vxlan_intfs if item not in intent_vxlan.keys() %}
+      del vxlan {{ item }}
+      {%  endfor %}
+    atomic: true
+  register: net_del
+
+- name: add vxlan
+  nclu:
+    template: |
+      {%  for name, vni in vxlan[inventory_hostname]['vxlan'].items() %}
+      add vxlan {{ name }} vxlan id {{ vni.id }}
+      add vxlan {{ name }} bridge learning off
+      add vxlan {{ name }} bridge access {{ vni.vlan }}
+      add vxlan {{ name }} bridge arp-nd-suppress on
+      add vxlan {{ name }} vxlan local-tunnelip {{ vxlan[inventory_hostname]['local_tunnelip'] }}
+      {%    if vni.type == 'l3' %}
+      add vrf {{ vni.tenant }} vni {{ vni.id }}
+      {%    endif %}
+      {% endfor %}
+    atomic: true
+  register: net_add
+
+- name: net show commit last
+  nclu:
+    commands:
+      - show commit last
+  when: net_del['changed'] or net_add['changed']

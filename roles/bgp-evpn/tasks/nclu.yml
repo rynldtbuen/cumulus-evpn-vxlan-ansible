@@ -1,47 +1,83 @@
-- name: base config
+- name: restore frr.conf
+  command: "{{ item }}"
+  loop:
+    - rm /etc/frr/frr.conf
+    - systemctl restart frr.service
+  when: ( bgp_sum['ipv4 unicast']['as'] is defined and
+          bgp_sum['ipv4 unicast']['as'] != bgp_neighbors[inventory_hostname]['global']['as_number']
+        )
+
+- name: del bgp neighbors
   nclu:
     template: |
-      add bgp autonomous-system {{ bgp_asn }}
-      add bgp router-id {{ loopback_ipv4 | ipaddr('address') }}
+      {%  set intent_neighbors = bgp_neighbors[inventory_hostname]['global']['neighbors'] %}
+      {%  for neighbor in _bgp_neighbors.keys() if neighbor not in intent_neighbors.keys() %}
+      {%    if neighbor.startswith('swp') %}
+      del bgp neighbor {{ neighbor }} interface peer-group {{ _bgp_neighbors[neighbor]['peerGroup'] }}
+      {%    else %}
+      del bgp neighbor {{ neighbor }} peer-group {{ _bgp_neighbors[neighbor]['peerGroup'] }}
+      {%    endif %}
+      {%  endfor %}
+    atomic: true
+  when: _bgp_neighbors != "Failed on line show bgp neighbor json"
+
+- name: add bgp evpn
+  nclu:
+    template: |
+      {%  set global = bgp_neighbors[inventory_hostname]['global'] %}
+      {%  set lo = loopback[inventory_hostname] %}
+      {#  Add BGP #}
+      add bgp autonomous-system {{ global['as_number'] }}
+      add bgp router-id {{ global['router_id'] }}
       add bgp bestpath as-path multipath-relax
       add bgp bestpath compare-routerid
-    commit: true
-
-- name: configure neighbor and activate evpn
-  nclu:
-    template: |
-      {% set peer = 'cumulus' %}
-      add bgp neighbor {{ peer }} peer-group
-      add bgp neighbor {{ peer }} remote-as external
-      add bgp neighbor {{ peer }} capability extended-nexthop
-      add bgp neighbor {{ fabric_ | join(',') }} interface peer-group {{ peer }}
-      add bgp l2vpn evpn neighbor {{ peer }} activate
-    commit: true
-
-- name: advertise vni
-  nclu:
-    template: |
+      {%  for peer_group in global['peer_groups'] %}
+      add bgp neighbor {{ peer_group }} peer-group
+      add bgp neighbor {{ peer_group }} remote-as external
+      add bgp neighbor {{ peer_group }} capability extended-nexthop
+      {#  Activate L2VPN and advertise vni #}
+      add bgp l2vpn evpn neighbor {{ peer_group }} activate
+      {%  endfor %}
+      {%  if inventory_hostname in groups['leaf'] %}
       add bgp l2vpn evpn advertise-all-vni
-    commit: true
-  when: inventory_hostname in groups['tor']
+      {%  endif %}
+      {#  Add neighbor interfaces #}
+      {%  for neighbor, v in global['neighbors'].items() %}
+      add bgp neighbor {{ neighbor }} interface peer-group {{ v['peer_group'] }}
+      {%  endfor %}
+      {#  Add networks #}
+      add bgp network {{ lo['ip_addresses'][0] }}
+      {%  if lo['clag_vxlan_anycast_ip'] is not none %}
+      add bgp network {{ lo['clag_vxlan_anycast_ip'] + '/32' }}
+      {%  endif %}
+    atomic: true
 
-- name: advertise network
+- name: net show commit history
+  nclu:
+    commands:
+      - show commit history
+  register: commit_history
+
+- name: list of commits
+  set_fact:
+    _commit_history: "{{ commit_history['msg'] }}"
+
+- name: show commit
   nclu:
     template: |
-      add bgp network {{ loopback_ipv4 }}
-      {% if inventory_hostname in groups['leaf'] %}
-      add bgp network {{ clag_vxlan_anycast_subnet | ipsubnet(32, rack_id) }}
-      {% endif %}
-    commit: true
+      {%  set x = _commit_history | regex_findall('^(\\d+)', multiline=True) %}
+      {%  for item in x[-2:] %}
+      show commit {{ item }}
+      {%  endfor %}
 
-- name: configure bgp vrf
-  nclu:
-    template: |
-      {% for item in ip_sub_interface %}
-      add bgp vrf {{ item.vrf }} autonomous-system {{ bgp_asn }}
-      add bgp vrf {{ item.vrf }} router-id {{ loopback_ipv4 | ipaddr('address') }}
-      add bgp vrf {{ item.vrf }} neighbor {{ item.ip_address | ipaddr('0') | ipaddr('1') | ipaddr('address') }} remote-as {{ hostvars[item.neighbor].bgp_asn }}
-      add bgp vrf {{ item.vrf }} l2vpn evpn advertise ipv4 unicast
-      {% endfor %}
-    commit: true
-  when: inventory_hostname in groups['border-leaf']
+# - name: configure bgp vrf
+#   set_fact:
+#     template4: |
+#       {% for vrf, param in bgp_neighbors[inventory_hostname].items() if vrf != 'global' %}
+#       add bgp vrf {{ vrf }} autonomous-system {{ param['as_number'] }}
+#       add bgp vrf {{ vrf }} router-id {{ param['router_id'] }}
+#       {%    for neighbor, v in v['neighbors'].items() %}
+#       add bgp vrf {{ vrf }} neighbor {{ neighbor }} remote-as {{ v['remote_as'] }}
+#       {%    endfor %}
+#       add bgp vrf {{ vrf }} l2vpn evpn advertise ipv4 unicast
+#       {% endfor %}

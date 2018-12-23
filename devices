@@ -1,31 +1,44 @@
-# Template that generate inventory hosts base on variables in 'vars/dhcp-host.yml'
 localhost ansible_connection=local ansible_become=true ansible_become_pass=admin
+dhcp_dns01 ansible_host='172.24.0.15' ansible_become=true ansible_become_pass=admin ansible_user=reynold ansible_ssh_pass=admin
 
 [leaf]
-leaf01
-leaf02
-leaf03
-leaf04
-[border-leaf]
-border-leaf01
-border-leaf02
-[spine]
-spine01
-spine02
+leaf01 mgmt_hwaddr='0c:c6:19:3b:c4:00'
+leaf02 mgmt_hwaddr='0c:c6:19:f6:98:00'
+leaf03 mgmt_hwaddr='0c:c6:19:68:6d:00'
+leaf04 mgmt_hwaddr='0c:c6:19:f9:14:00'
+leaf05 mgmt_hwaddr='0c:c6:19:78:d8:00'
+leaf06 mgmt_hwaddr='0c:c6:19:66:93:00'
+leaf07 mgmt_hwaddr='0c:c6:19:e4:d0:00'
 
-[tor:children]
-leaf
-border-leaf
+[border]
+border01 mgmt_hwaddr='0c:c6:19:5a:7c:00'
+border02 mgmt_hwaddr='0c:c6:19:4b:c1:00'
+
+[spine]
+spine01 mgmt_hwaddr='0c:c6:19:b6:1a:00'
+spine02 mgmt_hwaddr='0c:c6:19:54:62:00'
 
 [cumulus:children]
 leaf
-border-leaf
+border
 spine
 
-[edge-router]
-edge-router01 ansible_host=172.24.0.254
-[network-device:children]
+[cumulus:vars]
+ansible_become=true
+ansible_user=cumulus
+ansible_become_pass=CumulusLinux!
+
+[edge]
+edge01
+edge02
+
+[edge:vars]
+ansible_ssh_pass=vyos
+ansible_user=vyos
+ansible_network_os=vyos
+
+[network_device:children]
 leaf
-border-leaf
+border
 spine
-edge-router
+edge

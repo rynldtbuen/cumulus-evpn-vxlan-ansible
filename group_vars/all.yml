@@ -1,3 +1,5 @@
-node_id: "{{ inventory_hostname | regex_search('(?<=\\d)\\d+') }}"
-playbook_vars: "{{ playbook_dir | dirname }}/vars"
-playbook_dirname: "{{ playbook_dir | dirname }}"
+domain: 'cumulusgns3.lab'
+oob_mgmt_dhcp_range: '172.24.0.50,172.24.0.100'
+obb_mgmt_interface: 'ens4'
+listen_address: '172.24.0.15'
+gateway: '172.24.0.254'

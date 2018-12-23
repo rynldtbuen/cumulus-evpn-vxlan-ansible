@@ -1,0 +1,32 @@
+- name: generate host clag variables
+  shell: 'python scripts/main.py mlag'
+  register: var_output
+  delegate_to: localhost
+  run_once: true
+  changed_when: false
+
+- name: set mlag variables
+  set_fact:
+    mlag: "{{ var_output['stdout'] }}"
+
+- name: net show interface bonds json
+  nclu:
+    commands:
+      - show interface bonds json
+  register: sh_intfs_bonds_json
+  changed_when: false
+
+- name: net show clag status
+  nclu:
+    commands:
+      - show clag status json
+  register: sh_clag_status_json
+  changed_when: false
+
+- name: interface bonds
+  set_fact:
+    bonds_intfs: "{{ sh_intfs_bonds_json['msg'] }}"
+#
+- name: interface bonds
+  set_fact:
+    clag_intfs: "{{ sh_clag_status_json['msg'] }}"

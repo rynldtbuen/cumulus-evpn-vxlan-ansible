@@ -1,37 +1,75 @@
-- name: configure vlan interface for anycast gw
-  nclu:
-    template: |
-      {% for vlan in vlans %}
-      {% set virtual_mac = '44:38:39:FF:01:00' | hwaddr('int') + vlan.id %}
-      {% set ipaddress = tenants_ | selectattr('vlan_id', 'equalto', vlan.id) | map(attribute='subnet') | join('') %}
-      {% set vrf = tenants_ | selectattr('vlan_id', 'equalto', vlan.id) | map(attribute='vrf') | join('') %}
-      add vlan {{ vlan.id }} ip address {{ ipaddress | ipaddr(node_id) }}
-      add vlan {{ vlan.id }} ip address-virtual {{ virtual_mac | hwaddr('linux') }} {{ ipaddress | ipaddr('-2') }}
-      add vlan {{ vlan.id }} vrf {{ vrf }}
-      {% endfor %}
-    commit: true
-  when: vlans is defined and vlans is iterable
+- name: generate host svi variables
+  shell: 'python scripts/main.py svi'
+  register: var_output
+  delegate_to: localhost
+  run_once: true
+  changed_when: false
 
-- name: configure vlan interface for l3 vni
-  nclu:
-    template: |
-      {% set l3vni = vlans | map(attribute='l3vni') | list | unique %}
-      {% for item in l3vni %}
-      {% set vrf = tenants_ | selectattr('l3vni', 'equalto', item) | map(attribute='vrf') | list | unique | join('') %}
-      {% set router_mac = '44:39:39:FF:FF:FF' | hwaddr('int') - rack_id %}
-      add vlan {{ item }} vrf {{ vrf }}
-      add vlan {{ item }} hwaddress {{ router_mac | hwaddr('linux') }}
-      {% endfor %}
-    commit: true
-  when: vlans is defined and vlans is iterable
+- name: set svi variables
+  set_fact:
+    svi: "{{ var_output['stdout'] }}"
 
-- name: configure vlan interface for l3 vni
+- name: net show interface all json
+  nclu:
+    commands:
+      - show interface json
+  register: sh_intfs_all_json
+  changed_when: false
+
+- name: interfaces
+  set_fact:
+    intfs: "{{ sh_intfs_all_json['msg'] }}"
+
+- name: del svi
   nclu:
     template: |
-      {% set l3vni = tenants_ | map(attribute='l3vni') | list | unique %}
-      {% for item in l3vni %}
-      {% set vrf = tenants_ | selectattr('l3vni', 'equalto', item) | map(attribute='vrf') | list | unique | join('') %}
-      add vlan {{ item }} vrf {{ vrf }}
+      {%  set intent_svi = svi[inventory_hostname] %}
+      {%  set virtual =  intfs.keys() | select('search', '-v') | list %}
+      {%  set vifs =  intfs.keys() | select('search', 'vlan') | reject('search', '-v') | list %}
+      {%  for v in virtual %}
+      {%    set vlan = v.split('-')[0].split('vlan')[1] %}
+      {%    set vmac = intfs[v]['iface_obj']['mac'] %}
+      {%    set vip = intfs[v]['iface_obj']['ip_address']['allentries'][0] %}
+      {%    if vlan in intent_svi.keys() %}
+      {%      set ips = intfs['vlan' + vlan]['iface_obj']['ip_address']['allentries'] %}
+      {%      if vmac != intent_svi[vlan]['virtual_mac'] or
+                 vip != intent_svi[vlan]['virtual_address'] %}
+      del vlan {{ vlan }} ip address-virtual {{ vmac }} {{ vip }}
+      {%      endif %}
+      {%      for ip in ips if ip != intent_svi[vlan]['address'] %}
+      del vlan {{ vlan }} ip address {{ ip }}
+      {%      endfor %}
+      {%    endif %}
+      {%  endfor %}
+      {%  for vif in vifs %}
+      {%    set _vif = vif.split('vlan')[1] %}
+      {%    if _vif not in intent_svi.keys() %}
+      del vlan {{ _vif }}
+      {%    endif %}
+      {%  endfor %}
+    atomic: true
+  register: net_del
+
+- name: add svi
+  nclu:
+    template: |
+      {% for id, svi in svi[inventory_hostname].items() %}
+      {%    if svi.type == 'l2' %}
+      add vlan {{ id }} ip address {{ svi.address }}
+      add vlan {{ id}} ip address-virtual {{ svi.virtual_mac }} {{ svi.virtual_address }}
+      add vlan {{ id }} vrf {{ svi.tenant }}
+      {%    elif svi.type == 'l3' and svi.router_mac is defined %}
+      add vlan {{ id }} hwaddress {{ svi.router_mac }}
+      add vlan {{ id }} vrf {{ svi.tenant }}
+      {%    else %}
+      add vlan {{ id }} vrf {{ svi.tenant }}
+      {%    endif %}
       {% endfor %}
-    commit: true
-  when: inventory_hostname in groups['border-leaf']
+    atomic: true
+  register: net_add
+
+- name: net show commit last
+  nclu:
+    commands:
+      - show commit last
+  when: net_del['changed'] or net_add['changed']
