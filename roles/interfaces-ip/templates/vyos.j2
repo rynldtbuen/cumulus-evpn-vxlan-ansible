@@ -1,0 +1,4 @@
+{% for vif, value in interfaces_ip[inventory_hostname].items() %}
+{%    set intf, _vif = vif %}
+set interfaces ethernet {{ intf }} vif {{ _vif }} address {{ value['ipv4_address'] }}
+{% endfor %}

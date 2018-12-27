@@ -21,7 +21,7 @@ import os
 #   ]
 # x = ['leaf01', 'leaf02', 'leaf03', 'leaf04', 'leaf05', 'leaf06', ]
 getconfigvars = GetConfigVars()
-print(json.dumps(getconfigvars._hostvars('mgmt_hwaddr'), indent=4))
+print(json.dumps(getconfigvars._interfaces_subnet(), indent=4))
 # print(getconfigvars.dnsmasq())
 # inventory_filename = os.getcwd() + '/devices'
 # data_loader = DataLoader()

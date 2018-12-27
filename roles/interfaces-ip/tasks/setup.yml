@@ -1,5 +1,5 @@
 - name: generate host clag variables
-  shell: 'python scripts/main.py ip_interface'
+  shell: 'python scripts/main.py interfaces_ip'
   register: var_output
   delegate_to: localhost
   run_once: true
@@ -7,4 +7,4 @@
 
 - name: set ip_interface variables
   set_fact:
-    ip_interface: "{{ var_output['stdout'] }}"
+    interfaces_ip: "{{ var_output['stdout'] }}"

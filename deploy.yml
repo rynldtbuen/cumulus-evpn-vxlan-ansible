@@ -15,7 +15,7 @@
   roles:
     - { role: vxlan, tags: vxlan }
     - { role: svi, tags: svi }
-    - { role: ip-interface, tags: ip-interface }
+    - { role: interfaces-ip, tags: interfaces-ip }
     - { role: bgp-evpn, tags: bgp-evpn }
 
 - name: SPINE
@@ -30,4 +30,4 @@
   gather_facts: false
   any_errors_fatal: true
   roles:
-    - { role: ip-interface, tags: ip-interface }
+    - { role: interfaces-ip, tags: interfaces-ip}

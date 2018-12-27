@@ -1,4 +1,4 @@
-{% set _listen_address = listen_address | default('172.24.0.15')  %}
+{% set _listen_address = listen_address | default('172.24.0.10')  %}
 {% set _dhcp_range = dhcp_range | default('172.24.0.50,172.24.0.200') %}
 {% set _domain = domain | default('cumulusvxgns3.lab') %}
 {% set _gateway = gateway | default('172.24.0.254') %}
@@ -18,7 +18,7 @@ no-poll
 
 # Add other name servers here, with domain specs if they are for
 # non-public domains.
-server={{ _gateway }}
+server=8.8.8.8
 
 # If you want dnsmasq to listen for DHCP and DNS requests only on
 # specified interfaces (and the loopback) give the name of the

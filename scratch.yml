@@ -1,16 +1,22 @@
-- hosts: dhcp_dns01
+- hosts: all
   gather_facts: false
   tasks:
 
-  - name: generate dnsmasq.conf
-    template:
-      src: 'dnsmasq.j2'
-      dest: '/etc/dnsmasq.conf'
+  - name: get interfaces ip
+    napalm_get_facts:
+      hostname={{ ansible_host }}
+      username={{ ansible_user }}
+      dev_os={{ ansible_network_os }}
+      password={{ ansible_ssh_pass }}
+      filter='interfaces_ip'
+    register: result
 
-  - name: test dnsmasq config
-    shell: 'dnsmasq --test'
+  - set_fact:
+      test01: |
+        {%  set interfaces_ip = result['ansible_facts']['napalm_interfaces_ip'] %}
+        {%   for intf, v in interfaces_ip.items() if '.' in intf %}
+        {%      for address, prefix in v['ipv4'].items() %}
+        {%      set ip = '%s/%s' | format(address, prefix['prefix_length']) %}
 
-  - name: restart dnsmasq service
-    systemd:
-      name: dnsmasq
-      state: restarted
+        {%       endfor %}
+        {%    endfor %}

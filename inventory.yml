@@ -7,14 +7,17 @@
     template:
       src: 'dnsmasq.j2'
       dest: '/etc/dnsmasq.conf'
+    register: dnsmasq
 
   - name: test dnsmasq config
     shell: 'dnsmasq --test'
+    when: dnsmasq is changed
 
   - name: restart dnsmasq service
     systemd:
       name: dnsmasq
       state: restarted
+    when: dnsmasq is changed
 
 # - name: update dhcp.conf and inventory file
 #   hosts: localhost

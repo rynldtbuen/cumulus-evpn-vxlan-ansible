@@ -1,3 +1,0 @@
-{% for vif, value in ip_interface[inventory_hostname]['viface'].items() %}
-set interfaces ethernet {{ vif.split('.')[0] }} vif {{ vif.split('.')[1] }} address {{ value.ipv4_address }}
-{% endfor %}

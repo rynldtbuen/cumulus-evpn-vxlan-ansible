@@ -1,0 +1,41 @@
+- name: net show interface all json
+  nclu:
+    commands:
+      - show interface all json
+  register: sh_intfs_all_json
+
+- name: interfaces
+  set_fact:
+    intfs: "{{ sh_intfs_all_json['msg'] }}"
+
+- name: net del
+  nclu:
+    template: |
+      {%  set _intfs = interfaces_ip[inventory_hostname] %}
+      {%  for intf in intfs if intfs[intf]['mode'] == 'SubInt/L3' %}
+      {%  set iface_obj_address = intfs[intf]['iface_obj']['ip_address']['allentries'][0] %}
+      {%    if intf not in _intfs.keys() %}
+      del interface {{ intf }}
+      {%    elif intf in _intfs.keys() and
+               iface_obj_address != _intfs[intf]['ipv4_address'] %}
+      del interface {{ intf }}
+      {%    endif %}
+      {%  endfor %}
+    atomic: true
+  register: net_del
+
+- name: net add
+  nclu:
+    template: |
+      {% for vif, value in interfaces_ip[inventory_hostname].items() %}
+      add interface {{ vif }} ip address {{ value['ipv4_address'] }}
+      add interface {{ vif }} vrf {{ value['vrf'] }}
+      {% endfor %}
+    atomic: true
+  register: net_add
+
+- name: net show commit last
+  nclu:
+    commands:
+      - show commit last
+  when: net_add['changed'] or net_del['changed']

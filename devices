@@ -1,14 +1,10 @@
 localhost ansible_connection=local ansible_become=true ansible_become_pass=admin
-dhcp_dns01 ansible_host='172.24.0.15' ansible_become=true ansible_become_pass=admin ansible_user=reynold ansible_ssh_pass=admin
 
 [leaf]
 leaf01 mgmt_hwaddr='0c:c6:19:3b:c4:00'
 leaf02 mgmt_hwaddr='0c:c6:19:f6:98:00'
 leaf03 mgmt_hwaddr='0c:c6:19:68:6d:00'
 leaf04 mgmt_hwaddr='0c:c6:19:f9:14:00'
-leaf05 mgmt_hwaddr='0c:c6:19:78:d8:00'
-leaf06 mgmt_hwaddr='0c:c6:19:66:93:00'
-leaf07 mgmt_hwaddr='0c:c6:19:e4:d0:00'
 
 [border]
 border01 mgmt_hwaddr='0c:c6:19:5a:7c:00'
@@ -27,15 +23,16 @@ spine
 ansible_become=true
 ansible_user=cumulus
 ansible_become_pass=CumulusLinux!
+ansible_network_os=cumulus
 
 [edge]
-edge01
-edge02
+edge01 ansible_host=172.24.0.254
 
 [edge:vars]
 ansible_ssh_pass=vyos
 ansible_user=vyos
 ansible_network_os=vyos
+ansible_connection=network_cli
 
 [network_device:children]
 leaf

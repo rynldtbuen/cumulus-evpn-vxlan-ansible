@@ -24,16 +24,14 @@ fabric:
   - 'spine:swp1 -- leaf:swp21'
   - 'spine:swp20 -- border:swp23'
 #
-external_base_subnet: '172.24.0.0/16'
+external_base_subnet: '172.21.0.0/16'
 external_connectivity:
-  - 'edge01:eth0 -- border01:swp23'
-  - 'edge01:eth1 -- border02:swp23'
-  - 'edge02:eth0 -- border01:swp24'
-  - 'edge02:eth1 -- border02:swp24'
+  - 'edge01:eth0 -- border01:swp1'
+  - 'edge01:eth1 -- border02:swp1'
 
 # Define a base network/prefix to automatically allocate subnet
 # to tenant vlans if no 'subnet' attribute was defined.
-vlan_base_net_prefix: '172.16.0.0/16'
+vlan_base_net_prefix: '172.16.0.0/24'
 # Define tenant/vrf vlans values.
 vlans:
   vrf01:

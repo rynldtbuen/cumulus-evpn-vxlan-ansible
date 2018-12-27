@@ -1,8 +1,0 @@
-- name: configure sub interface
-  set_fact:
-    template: |
-      {% for vif, value in ip_interface[inventory_hostname]['viface'].items() %}
-      add interface {{ vif }} ip address {{ value.ipv4_address }}
-      add interface {{ vif }} vrf {{ value.vrf }}
-      {% endfor %}
-    # commit: true

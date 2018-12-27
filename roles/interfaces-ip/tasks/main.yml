@@ -1,5 +1,5 @@
-- import_tasks: setup.yml
-- import_tasks: nclu.yml
+- include_tasks: setup.yml
+- include_tasks: "{{ ansible_network_os }}.yml"
 #   when: inventory_hostname in groups['cumulus']
 # - include: nclu.yml
 #   when: inventory_hostname in groups['cumulus']

@@ -526,45 +526,52 @@ class GetConfigVars:
     def _interfaces_subnet(self):
         ptp_net = utils.load_masterfile('external_connectivity')
         base_subnet = utils.load_masterfile('external_base_subnet')
-        existing_subnets = utils.load_datafile('external_subnets')
+        existing_data = utils.load_datafile('external_subnets')
         subnet = utils.get_subnet(
-            base_subnet, list(existing_subnets.keys()), 30)
+            base_subnet, list(existing_data['subnets'].keys()), 30
+            )
         existing_vids = utils.unique(
-            [value['vlan'] for _, value in existing_subnets.items()]
+            [value['vlan'] for _, value in existing_data['subnets'].items()]
             )
         existing_network_id = utils.unique(
-            [value['network_id'] for _, value in existing_subnets.items()]
+            [value['network_id'] for _, value in existing_data['subnets'].items()]
             )
 
         vids = {vid: value for vid, value in self._vlans().items()
                 if value['name'] == 'transport_vni'}
 
+        if existing_data['base_subnet'] != base_subnet:
+            default_data = {'base_subnet': {}, 'subnets': {}}
+            utils.dump_datafile('external_subnets', default_data)
+
+        existing_data['base_subnet'] = base_subnet
+
         for item in ptp_net:
             if item not in existing_network_id:
                 for vid in vids.keys():
-                    existing_subnets[next(subnet)] = {
+                    existing_data['subnets'][next(subnet)] = {
                         'vlan': vid, 'network_id': item,
-                        'tenant': vids[vid]['tenant']
+                        'vrf': vids[vid]['tenant']
                         }
             else:
                 for vid in vids.keys():
                     if vid not in existing_vids:
-                        existing_subnets[next(subnet)] = {
+                        existing_data['subnets'][next(subnet)] = {
                             'vlan': vid, 'network_id': item,
-                            'tenant': vids[vid]['tenant']
+                            'vrf': vids[vid]['tenant']
                             }
 
-        for subnet, value in existing_subnets.copy().items():
+        for subnet, value in existing_data['subnets'].copy().items():
             if value['vlan'] not in vids.keys():
-                existing_subnets.pop(subnet)
+                existing_data['subnets'].pop(subnet)
             if value['network_id'] not in ptp_net:
-                existing_subnets.pop(subnet)
+                existing_data['subnets'].pop(subnet)
 
-        return utils.dump_datafile('external_subnets', existing_subnets)
+        return utils.dump_datafile('external_subnets', existing_data)
 
     def interfaces_ip(self):
 
-        external_subnets = self._interfaces_subnet()
+        external_subnets = self._interfaces_subnet()['subnets']
         links = self._links(utils.load_masterfile('external_connectivity'))
         chkvars.links(links)
 
@@ -585,11 +592,11 @@ class GetConfigVars:
                             'remote_host': item['link_to'],
                             'remote_intf': remote_iface,
                             'ipv4_address': ip,
-                            'vrf': value['tenant'],
+                            'vrf': value['vrf'],
                             'remote_ipv4_address': remote_ip
                         }
 
-        return interfaces_ip
+        return dict(interfaces_ip)
 
     def bgp(self):
         bgp_base_asn = utils.load_masterfile('bgp_base_asn')

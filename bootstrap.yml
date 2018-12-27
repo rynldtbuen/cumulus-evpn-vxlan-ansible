@@ -23,6 +23,13 @@
     register: update_dist
     tags: update
 
+  - name: add mgmt vrf
+    shell: "net add vrf mgmt && net commit"
+    async: 5
+    poll: 0
+    register: mgmt_vrf
+    tags: mgmt
+
   - name: reboot switch
     shell: "sleep 5 && reboot"
     async: 5
@@ -34,15 +41,3 @@
     wait_for_connection: delay=20
     tags: update
     when: update_dist is changed
-
-  - name: add mgmt vrf
-    shell: "net add vrf mgmt && net commit"
-    async: 5
-    poll: 0
-    register: mgmt_vrf
-    tags: mgmt
-
-  - name: reconnect to switch
-    wait_for_connection:
-    when: mgmt_vrf is changed
-    tags: mgmt

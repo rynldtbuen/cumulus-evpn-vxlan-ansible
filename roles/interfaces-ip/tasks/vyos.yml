@@ -1,0 +1,23 @@
+- name: get interfaces ip
+  napalm_get_facts:
+    hostname={{ ansible_host }}
+    username={{ ansible_user }}
+    dev_os={{ ansible_network_os }}
+    password={{ ansible_ssh_pass }}
+    filter='interfaces_ip'
+  register: result
+
+- set_fact:
+    test01: |
+      {%  set interfaces_ip = result['ansible_facts']['napalm_interfaces_ip'] %}
+      {%   for intf, v in interfaces_ip.items() if '.' in intf %}
+      {%      for address, prefix in v['ipv4'].items() %}
+      {%      set ip = '%s/%s' | format(address, prefix['prefix_length']) %}
+
+      {%       endfor %}
+      {%    endfor %}
+
+- name: add interface
+  vyos_config:
+    src: vyos.j2
+    save: yes
