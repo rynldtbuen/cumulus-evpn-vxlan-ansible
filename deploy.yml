@@ -30,4 +30,4 @@
   gather_facts: false
   any_errors_fatal: true
   roles:
-    - { role: interfaces-ip, tags: interfaces-ip}
+    - { role: interfaces-ip, tags: interfaces-ip }

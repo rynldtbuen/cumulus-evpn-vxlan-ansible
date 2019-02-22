@@ -1,4 +1,4 @@
-- name: del mlag bond interface
+- name: del mlag bond
   nclu:
     template: |
       {%  set intent_bonds = mlag[inventory_hostname]['bonds'] %}
@@ -40,7 +40,13 @@
     atomic: true
   register: net_del
 
-- name: add server bond interface
+- name: show commit last
+  nclu:
+    commands:
+      - show commit last
+  when: net_del['changed']
+
+- name: add mlag bond
   nclu:
     template: |
       {%  set bonds = mlag[inventory_hostname]['bonds'] %}
@@ -57,8 +63,8 @@
     atomic: true
   register: net_add
 
-- name: net show commit last
+- name: show commit last
   nclu:
     commands:
       - show commit last
-  when: net_del['changed'] or net_add['changed']
+  when: net_add['changed']

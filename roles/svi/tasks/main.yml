@@ -1,75 +1,68 @@
 - name: generate host svi variables
-  shell: 'python scripts/main.py svi'
-  register: var_output
-  delegate_to: localhost
-  run_once: true
-  changed_when: false
-
-- name: set svi variables
   set_fact:
-    svi: "{{ var_output['stdout'] }}"
+    svi: "{{ 'svi' | get_config }}"
 
-- name: net show interface all json
-  nclu:
-    commands:
-      - show interface json
-  register: sh_intfs_all_json
-  changed_when: false
-
-- name: interfaces
-  set_fact:
-    intfs: "{{ sh_intfs_all_json['msg'] }}"
-
-- name: del svi
-  nclu:
-    template: |
-      {%  set intent_svi = svi[inventory_hostname] %}
-      {%  set virtual =  intfs.keys() | select('search', '-v') | list %}
-      {%  set vifs =  intfs.keys() | select('search', 'vlan') | reject('search', '-v') | list %}
-      {%  for v in virtual %}
-      {%    set vlan = v.split('-')[0].split('vlan')[1] %}
-      {%    set vmac = intfs[v]['iface_obj']['mac'] %}
-      {%    set vip = intfs[v]['iface_obj']['ip_address']['allentries'][0] %}
-      {%    if vlan in intent_svi.keys() %}
-      {%      set ips = intfs['vlan' + vlan]['iface_obj']['ip_address']['allentries'] %}
-      {%      if vmac != intent_svi[vlan]['virtual_mac'] or
-                 vip != intent_svi[vlan]['virtual_address'] %}
-      del vlan {{ vlan }} ip address-virtual {{ vmac }} {{ vip }}
-      {%      endif %}
-      {%      for ip in ips if ip != intent_svi[vlan]['address'] %}
-      del vlan {{ vlan }} ip address {{ ip }}
-      {%      endfor %}
-      {%    endif %}
-      {%  endfor %}
-      {%  for vif in vifs %}
-      {%    set _vif = vif.split('vlan')[1] %}
-      {%    if _vif not in intent_svi.keys() %}
-      del vlan {{ _vif }}
-      {%    endif %}
-      {%  endfor %}
-    atomic: true
-  register: net_del
-
-- name: add svi
-  nclu:
-    template: |
-      {% for id, svi in svi[inventory_hostname].items() %}
-      {%    if svi.type == 'l2' %}
-      add vlan {{ id }} ip address {{ svi.address }}
-      add vlan {{ id}} ip address-virtual {{ svi.virtual_mac }} {{ svi.virtual_address }}
-      add vlan {{ id }} vrf {{ svi.tenant }}
-      {%    elif svi.type == 'l3' and svi.router_mac is defined %}
-      add vlan {{ id }} hwaddress {{ svi.router_mac }}
-      add vlan {{ id }} vrf {{ svi.tenant }}
-      {%    else %}
-      add vlan {{ id }} vrf {{ svi.tenant }}
-      {%    endif %}
-      {% endfor %}
-    atomic: true
-  register: net_add
-
-- name: net show commit last
-  nclu:
-    commands:
-      - show commit last
-  when: net_del['changed'] or net_add['changed']
+# - name: net show interface all json
+#   nclu:
+#     commands:
+#       - show interface json
+#   register: sh_intfs_all_json
+#   changed_when: false
+#
+# - name: interfaces
+#   set_fact:
+#     intfs: "{{ sh_intfs_all_json['msg'] }}"
+#
+# - name: del svi
+#   nclu:
+#     template: |
+#       {%  set intent_svi = svi[inventory_hostname] %}
+#       {%  set virtual =  intfs.keys() | select('search', '-v') | list %}
+#       {%  set vifs =  intfs.keys() | select('search', 'vlan') | reject('search', '-v') | list %}
+#       {%  for v in virtual %}
+#       {%    set vlan = v.split('-')[0].split('vlan')[1] %}
+#       {%    set vmac = intfs[v]['iface_obj']['mac'] %}
+#       {%    set vip = intfs[v]['iface_obj']['ip_address']['allentries'][0] %}
+#       {%    if vlan in intent_svi.keys() %}
+#       {%      set ips = intfs['vlan' + vlan]['iface_obj']['ip_address']['allentries'] %}
+#       {%      if vmac != intent_svi[vlan]['virtual_mac'] or
+#                  vip != intent_svi[vlan]['virtual_address'] %}
+#       del vlan {{ vlan }} ip address-virtual {{ vmac }} {{ vip }}
+#       {%      endif %}
+#       {%      for ip in ips if ip != intent_svi[vlan]['address'] %}
+#       del vlan {{ vlan }} ip address {{ ip }}
+#       {%      endfor %}
+#       {%    endif %}
+#       {%  endfor %}
+#       {%  for vif in vifs %}
+#       {%    set _vif = vif.split('vlan')[1] %}
+#       {%    if _vif not in intent_svi.keys() %}
+#       del vlan {{ _vif }}
+#       {%    endif %}
+#       {%  endfor %}
+#     atomic: true
+#   register: net_del
+#
+# - name: add svi
+#   nclu:
+#     template: |
+#       {% for id, svi in svi[inventory_hostname].items() %}
+#       {%    if svi.type == 'l2' %}
+#       add vlan {{ id }} ip address {{ svi.address }}
+#       add vlan {{ id}} ip address-virtual {{ svi.virtual_mac }} {{ svi.virtual_address }}
+#       add vlan {{ id }} vrf {{ svi.tenant }}
+#       {%    elif svi.type == 'l3' and svi.router_mac is defined %}
+#       add vlan {{ id }} hwaddress {{ svi.router_mac }}
+#       add vlan {{ id }} vrf {{ svi.tenant }}
+#       {%    else %}
+#       add vlan {{ id }} vrf {{ svi.tenant }}
+#       {%    endif %}
+#       {% endfor %}
+#     atomic: true
+#   register: net_add
+#
+# - name: net show commit last
+#   nclu:
+#     commands:
+#       - show commit last
+#   when: net_del['changed'] or net_add['changed']

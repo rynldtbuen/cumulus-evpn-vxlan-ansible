@@ -21,37 +21,33 @@ bgp_base_asn:
 
 #
 fabric:
-  - 'spine:swp1 -- leaf:swp21'
+  - 'spine:swp1 -- leaf:swp20'
   - 'spine:swp20 -- border:swp23'
+
 #
-external_base_subnet: '172.21.0.0/16'
 external_connectivity:
   - 'edge01:eth0 -- border01:swp1'
   - 'edge01:eth1 -- border02:swp1'
 
-# Define a base network/prefix to automatically allocate subnet
-# to tenant vlans if no 'subnet' attribute was defined.
-vlan_base_net_prefix: '172.16.0.0/24'
-# Define tenant/vrf vlans values.
+# Define tenant vlans. Vlans without 'subnet' attribute
+# will get a subnet automatically from reserved network/prelfix 172.16.0.0/14.
 vlans:
-  vrf01:
+  tenant01:
     - { id: '100', name: 'vlan100'}
     - { id: '101', name: 'vlan101'}
     - { id: '102', name: 'vlan102'}
-    # - { id: '300', name: 'vlan300'}
-    # - { id: '800', name: 'vlan800'}
-  vrf02:
+  tenant02:
     - { id: '500', name: 'vlan500'}
     - { id: '501', name: 'vlan501'}
     - { id: '502', name: 'vlan502'}
-    - { id: '503', name: 'vlan503'}
-    # - { id: '504', name: 'vlan504'}
-    # - { id: '301', name: 'vlan301', subnet: '192.168.2.0/24'}
-    # - { id: '801', name: 'vlan801', subnet: '10.0.0.0/24'}
+    - { id: '503', name: 'vlan503', subnet: '172.16.0.0/23'}
+    # - { id: '503', name: 'vlan504', subnet_size: 23}
+  #   - { id: '301', name: 'vlan301', subnet_size: 23}
+  #   - { id: '801', name: 'vlan801', subnet: '10.0.0.0/24'}
   # vrf03:
-  #   - { id: '800', name: 'vlan800'}
-  #   - { id: '801', name: 'vlan801'}
-  #   - { id: '802', name: 'vlan802'}
+  #   - { id: '810', name: 'vlan800'}
+    # - { id: '801', name: 'vlan801'}
+    # - { id: '810', name: 'vlan802'}
   # # default:
   #   - { id: '2', name: data01, subnet: '10.0.0.0/24' }
   #   - { id: '3', name: voice }
@@ -74,6 +70,8 @@ mlag_bonds:
   rack02:
     - { name: server03, members: 'swp11-12', vids: '100-102' }
     - { name: server04, members: 'swp13-14', vids: '500-502' }
+
+
 
 # optional_configs:
 #   - ptm

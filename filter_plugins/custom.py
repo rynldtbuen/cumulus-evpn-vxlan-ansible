@@ -1,7 +1,9 @@
-#!/usr/bin/python
 from itertools import groupby
 from operator import itemgetter
+from cl_vx_config.core import GetConfigVars
 import re
+
+getconfigvars = GetConfigVars()
 
 
 class FilterModule:
@@ -9,8 +11,14 @@ class FilterModule:
     def filters(self):
         return {
             'cluster_to_range': self.cluster_to_range,
-            'range_to_cluster': self.range_to_cluster
+            'range_to_cluster': self.range_to_cluster,
+            'get_config': self.get_config
             }
+
+    def get_config(self, v):
+        method = getattr(getconfigvars, v)
+
+        return method()
 
     def cluster_to_range(self, v):
         try:
@@ -68,6 +76,3 @@ class FilterModule:
             clustered.append(format)
 
         return ",".join(clustered)
-
-    def net_id(self, v):
-        pass

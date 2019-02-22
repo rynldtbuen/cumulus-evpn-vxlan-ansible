@@ -1,4 +1,4 @@
-- name: update dnsmasq hosts to sync with inventory
+- name: sync dnsmasq hosts with inventory
   hosts: localhost
   gather_facts: false
   tasks:

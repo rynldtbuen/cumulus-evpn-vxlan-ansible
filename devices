@@ -1,18 +1,19 @@
-localhost ansible_connection=local ansible_become=true ansible_become_pass=admin
+localhost ansible_connection=local ansible_become=true ansible_become_pass=admin ansible_python_interpreter=/usr/bin/python3
+
 
 [leaf]
-leaf01 mgmt_hwaddr='0c:c6:19:3b:c4:00'
-leaf02 mgmt_hwaddr='0c:c6:19:f6:98:00'
-leaf03 mgmt_hwaddr='0c:c6:19:68:6d:00'
-leaf04 mgmt_hwaddr='0c:c6:19:f9:14:00'
+leaf01 mgmt_hwaddr='0c:d9:c8:b7:bc:00'
+leaf02 mgmt_hwaddr='0c:d9:c8:3c:03:00'
+leaf03 mgmt_hwaddr='0c:d9:c8:e9:b5:00'
+leaf04 mgmt_hwaddr='0c:d9:c8:e6:7e:00'
 
 [border]
-border01 mgmt_hwaddr='0c:c6:19:5a:7c:00'
-border02 mgmt_hwaddr='0c:c6:19:4b:c1:00'
+border01 mgmt_hwaddr='0c:d9:c8:47:bf:00'
+border02 mgmt_hwaddr='0c:d9:c8:48:32:00'
 
 [spine]
-spine01 mgmt_hwaddr='0c:c6:19:b6:1a:00'
-spine02 mgmt_hwaddr='0c:c6:19:54:62:00'
+spine01 mgmt_hwaddr='0c:d9:c8:e9:b5:00'
+spine02 mgmt_hwaddr='0c:d9:c8:c9:ae:00'
 
 [cumulus:children]
 leaf
@@ -29,7 +30,7 @@ ansible_network_os=cumulus
 edge01 ansible_host=172.24.0.254
 
 [edge:vars]
-ansible_ssh_pass=vyos
+ansible_ssh_pass=admin
 ansible_user=vyos
 ansible_network_os=vyos
 ansible_connection=network_cli

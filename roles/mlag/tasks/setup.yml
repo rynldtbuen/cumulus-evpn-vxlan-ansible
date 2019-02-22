@@ -1,13 +1,6 @@
-- name: generate host clag variables
-  shell: 'python scripts/main.py mlag'
-  register: var_output
-  delegate_to: localhost
-  run_once: true
-  changed_when: false
-
-- name: set mlag variables
+- name: generate host mlag variables
   set_fact:
-    mlag: "{{ var_output['stdout'] }}"
+    mlag: "{{ 'mlag' | get_config }}"
 
 - name: net show interface bonds json
   nclu:

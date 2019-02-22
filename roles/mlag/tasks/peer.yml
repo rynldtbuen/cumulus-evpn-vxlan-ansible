@@ -1,4 +1,4 @@
-- name: configure mlag peerlink
+- name: add clag peer
   nclu:
     template: |
       {%  set intent_peer = mlag[inventory_hostname]['peer'] %}
@@ -9,8 +9,7 @@
                   'peerlink_interface': bonds_intfs['peerlink']['iface_obj']['members'].keys() | list | range_to_cluster,
                   'backup_ip': status['backupIp'],
                   'role': status['ourRole'],
-                  'system_mac': status['sysMac']
-        })
+                  'system_mac': status['sysMac'] })
       %}
       {%    endif %}
       {%  if 'peerlink' in bonds_intfs and intent_peer != live_peer %}
@@ -20,7 +19,7 @@
     atomic: true
   register: nclu
 
-- name: net show commit last
+- name: show commit last
   nclu:
     commands:
       - show commit last
