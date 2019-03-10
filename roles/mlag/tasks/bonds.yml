@@ -1,70 +1,47 @@
-- name: del mlag bond
-  nclu:
-    template: |
-      {%  set intent_bonds = mlag[inventory_hostname]['bonds'] %}
-      {%  set live_bonds = {} %}
-      {%  for bond in bonds_intfs if bond != 'peerlink' %}
-      {%    if bond not in intent_bonds.keys() %}
-      del bond {{ bond }}
-      {%    else %}
-      {%      set iface_obj = bonds_intfs[bond]['iface_obj'] %}
-      {%      set vids = iface_obj['vlan_list'] | cluster_to_range | map('int') | select('greaterthan', 1) | map('string')| list  %}
-      {%      set members = iface_obj['members'].keys() | list | range_to_cluster %}
-      {%      set alias = iface_obj['description'] %}
-      {%      set clag_id = clag_intfs['clagIntfs'][bond]['clagId'] %}
-      {%      set type = 'access' if vids | length == 1 else 'trunk'%}
-      {%      set vrf = alias.split(':')[0] %}
-      {%      do live_bonds.update({bond: {
-                'alias': alias, 'vids': vids | range_to_cluster, 'type': type,
-                'tenant': vrf, 'members': members , 'clag_id': clag_id,
-              }
-        })
-      %}
-      {%    endif %}
-      {%  endfor %}
-      {%  for _bond, v in live_bonds.items() %}
-      {%    if v['vids'] != intent_bonds[_bond]['vids'] %}
-      del bond {{ _bond }} bridge vids {{ v['vids'] }}
-      {%    endif %}
-      {%    set lmembers_list = v['members'] | cluster_to_range %}
-      {%    set imember_list = intent_bonds[_bond]['members'] | cluster_to_range %}
-      {%    set members_diffs =  lmembers_list | difference(imember_list) %}
-      {%    if members_diffs | length > 0 %}
-      {%      if members_diffs | length >= lmembers_list | length %}
-      del bond {{ _bond }}
-      {%      else %}
-      del bond {{ _bond }} bond slaves {{ members_diffs | join(',') }}
-      {%      endif %}
-      {%    endif %}
-      {%  endfor %}
-    atomic: true
-  register: net_del
+- name: net show configuration commands | egrep 'net add bond (\w+,.*|\w+) .[^ond].*'
+  shell: "net show configuration commands | egrep 'net add bond (\\w+,.*|\\w+) .[^ond].*'"
+  register: _running_configs
+  ignore_errors: true
+  changed_when: false
 
-- name: show commit last
-  nclu:
-    commands:
-      - show commit last
-  when: net_del['changed']
+- name: bonds running configs
+  set_fact:
+    running_configs: "{{ _running_configs.stdout_lines }}"
 
-- name: add mlag bond
-  nclu:
-    template: |
+- name: bonds intent configs
+  set_fact:
+    intent_configs: |
+      {%  set x = [] %}
       {%  set bonds = mlag[inventory_hostname]['bonds'] %}
       {%  for bond, value in bonds.items() %}
-      add bond {{ bond }} bond slaves {{ value.members }}
-      add bond {{ bond }} clag id {{ value.clag_id }}
-      add bond {{ bond  }} alias {{ value.alias }}
-      {%    if value.type == 'trunk' %}
-      add bond {{ bond }} bridge trunk vlans {{ value.vids }}
-      {%    else %}
-      add bond {{ bond }} bridge access {{ value.vids }}
-      {% endif %}
-      {% endfor %}
-    atomic: true
-  register: net_add
+      {%      do value.update({'name': bond}) %}
+      {%      do x.append(value) %}
+      net add bond {{ bond }} clag id {{ value.clag_id }}
+      {%  endfor %}
+      {%  for k, v in x | groupby('vids') %}
+      {%      set _bonds = v | map(attribute='name') | list %}
+      {%      if k | cluster_to_range | length > 1 %}
+      net add bond {{ _bonds | join(',') }} bridge vids {{ k }}
+      {%      else %}
+      net add bond {{ _bonds | join(',') }} bridge access {{ k }}
+      {%      endif %}
+      {%  endfor %}
 
-- name: show commit last
+- name: net del/add bond
+  nclu:
+    template: |
+      {%  set nclu = [] %}
+      {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
+      {%  for item_add in _intent_configs if item_add not in running_configs %}
+      {%    set _item_add = item_add.replace('net', '').strip() %}
+      {%      do nclu.append(_item_add) %}
+      {%  endfor %}
+      {%  for item in nclu %}
+      {{ item }}
+      {%  endfor %}
+  register: nclu
+- name: commit changes (4)
   nclu:
     commands:
-      - show commit last
-  when: net_add['changed']
+      - commit
+  when: nclu['changed']

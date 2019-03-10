@@ -1,0 +1,10 @@
+setup.py
+cl_vx_config/__init__.py
+cl_vx_config/core.py
+cl_vx_config/helpers.py
+cl_vx_config.egg-info/PKG-INFO
+cl_vx_config.egg-info/SOURCES.txt
+cl_vx_config.egg-info/dependency_links.txt
+cl_vx_config.egg-info/not-zip-safe
+cl_vx_config.egg-info/requires.txt
+cl_vx_config.egg-info/top_level.txt

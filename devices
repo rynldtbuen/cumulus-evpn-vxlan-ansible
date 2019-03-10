@@ -4,7 +4,7 @@ localhost ansible_connection=local ansible_become=true ansible_become_pass=admin
 [leaf]
 leaf01 mgmt_hwaddr='0c:d9:c8:b7:bc:00'
 leaf02 mgmt_hwaddr='0c:d9:c8:3c:03:00'
-leaf03 mgmt_hwaddr='0c:d9:c8:e9:b5:00'
+leaf03 mgmt_hwaddr='0c:d9:c8:35:b8:00'
 leaf04 mgmt_hwaddr='0c:d9:c8:e6:7e:00'
 
 [border]

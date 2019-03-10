@@ -2,6 +2,86 @@
   set_fact:
     svi: "{{ 'svi' | get_config }}"
 
+- name: net show interface all json
+  nclu:
+    commands:
+      - show interface json
+  register: net_show
+  changed_when: false
+
+- name: vlan interfaces running configs (1)
+  set_fact:
+    running_interfaces: "{{ net_show['msg'] }}"
+
+- name: net del vlan interfaces
+  nclu:
+    template: |
+      {%  set vifs =  running_interfaces.keys() | select('search', 'vlan') | reject('search', '-v') | list %}
+      {%  for vif in vifs %}
+      {%      set _vif = vif.split('vlan')[1] %}
+      {%      if _vif not in svi[inventory_hostname].keys() %}
+      del vlan {{ _vif }}{% endif %}
+      {%  endfor %}
+  register: nclu
+- name: commit changes (1)
+  nclu:
+    commands:
+      - commit
+  when: nclu['changed']
+
+- name: net show configuration commands | egrep 'net add vlan'
+  shell: "net show configuration commands | egrep 'net add vlan'"
+  register: _running_configs
+  ignore_errors: true
+  changed_when: false
+
+- name: vlan interfaces running configs (2)
+  set_fact:
+    running_configs: "{{ _running_configs.stdout_lines }}"
+
+- name: vlan interfaces intent configs
+  set_fact:
+    intent_configs: |
+      {% for id, svi in svi[inventory_hostname].items() %}
+      {%    if svi.type == 'l2' %}
+      net add vlan {{ id }} ip address {{ svi.address }}
+      net add vlan {{ id }} ip address-virtual {{ svi.virtual_mac }} {{ svi.virtual_address }}
+      net add vlan {{ id }} vlan-id {{ id }}
+      net add vlan {{ id }} vlan-raw-device bridge
+      net add vlan {{ id }} vrf {{ svi.tenant }}
+      {%    elif svi.type == 'l3' and svi.router_mac is defined %}
+      net add vlan {{ id }} vlan-id {{ id }}
+      net add vlan {{ id }} vlan-raw-device bridge
+      net add vlan {{ id }} hwaddress {{ svi.router_mac }}
+      net add vlan {{ id }} vrf {{ svi.tenant }}
+      {%    else %}
+      net add vlan {{ id }} vrf {{ svi.tenant }}
+      {%    endif %}
+      {% endfor %}
+
+- name: net del/add vlan interfaces
+  set_fact:
+    template: |
+      {%  set nclu = [] %}
+      {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
+      {%  for item_del in running_configs if item_del not in _intent_configs %}
+      {%      set _item_del = item_del.replace('add ', 'del ').replace('net', '').strip() %}
+      {%      do nclu.append(_item_del) %}{% endfor %}
+      {%  for item_add in _intent_configs if item_add not in running_configs %}
+      {%      set _item_add = item_add.replace('net', '').strip() %}
+      {%      do nclu.append(_item_add) %}{% endfor %}
+      {%  for item in nclu %}
+      {{ item }}{% endfor %}
+  register: nclu
+- name: commit changes (2)
+  nclu:
+    commands:
+      - commit
+  when: nclu['changed']
+
+
+
+#################################################
 # - name: net show interface all json
 #   nclu:
 #     commands:
@@ -42,25 +122,11 @@
 #       {%  endfor %}
 #     atomic: true
 #   register: net_del
-#
-# - name: add svi
-#   nclu:
-#     template: |
-#       {% for id, svi in svi[inventory_hostname].items() %}
-#       {%    if svi.type == 'l2' %}
-#       add vlan {{ id }} ip address {{ svi.address }}
-#       add vlan {{ id}} ip address-virtual {{ svi.virtual_mac }} {{ svi.virtual_address }}
-#       add vlan {{ id }} vrf {{ svi.tenant }}
-#       {%    elif svi.type == 'l3' and svi.router_mac is defined %}
-#       add vlan {{ id }} hwaddress {{ svi.router_mac }}
-#       add vlan {{ id }} vrf {{ svi.tenant }}
-#       {%    else %}
-#       add vlan {{ id }} vrf {{ svi.tenant }}
-#       {%    endif %}
-#       {% endfor %}
-#     atomic: true
-#   register: net_add
-#
+
+
+  #   atomic: true
+  # register: nclu
+
 # - name: net show commit last
 #   nclu:
 #     commands:

@@ -1,26 +1,38 @@
-- name: add clag peer
+- name: net show configuration commands | egrep 'net add interface peerlink'
+  shell: "net show configuration commands | egrep 'net add interface peerlink'"
+  register: _running_configs
+  ignore_errors: true
+  changed_when: false
+
+- name: peerlink interface running configs
+  set_fact:
+    running_configs: "{{ _running_configs.stdout_lines }}"
+
+- name: peerlink interface intent configs
+  set_fact:
+    intent_configs: |
+      {% set peer = mlag[inventory_hostname]['peer'] %}
+      net add interface peerlink.4094 clag backup-ip {{ peer['backup_ip'] }}
+      net add interface peerlink.4094 clag peer-ip {{ peer['peer_ip'] }}
+      net add interface peerlink.4094 clag priority {{ peer['priority'] }}
+      net add interface peerlink.4094 clag sys-mac {{ peer['system_mac'] }}
+      net add interface peerlink.4094 ip address {{ peer['ip'] }}
+
+- name: net del/add bond peerlink interface
   nclu:
     template: |
-      {%  set intent_peer = mlag[inventory_hostname]['peer'] %}
-      {%  set live_peer = {} %}
-      {%    if 'peerlink' in bonds_intfs %}
-      {%      set status = clag_intfs['status'] %}
-      {%      do live_peer.update({
-                  'peerlink_interface': bonds_intfs['peerlink']['iface_obj']['members'].keys() | list | range_to_cluster,
-                  'backup_ip': status['backupIp'],
-                  'role': status['ourRole'],
-                  'system_mac': status['sysMac'] })
-      %}
-      {%    endif %}
-      {%  if 'peerlink' in bonds_intfs and intent_peer != live_peer %}
-      del clag peer
-      {%  endif %}
-      add clag peer sys-mac {{ intent_peer['system_mac'] }} interface {{ intent_peer['peerlink_interface'] }} {{ intent_peer['role'] }} backup-ip {{ intent_peer['backup_ip'] }}
-    atomic: true
+      {%  set nclu = [] %}
+      {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
+      {%  for item_add in _intent_configs if item_add not in running_configs %}
+      {%    set _item_add = item_add.replace('net', '').strip() %}
+      {%      do nclu.append(_item_add) %}
+      {%  endfor %}
+      {% for item in nclu %}
+      {{ item }}
+      {% endfor %}
   register: nclu
-
-- name: show commit last
+- name: commit changes (3)
   nclu:
     commands:
-      - show commit last
+      - commit
   when: nclu['changed']

@@ -3,6 +3,7 @@
   gather_facts: false
   any_errors_fatal: true
   roles:
+    - { role: common, tags: common }
     - { role: mlag, tags: mlag }
     - { role: vxlan, tags: vxlan }
     - { role: svi, tags: svi }

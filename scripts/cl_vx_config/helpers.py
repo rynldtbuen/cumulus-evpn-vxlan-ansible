@@ -199,8 +199,9 @@ class CheckVars:
             try:
                 tenant, vid = self._get_tenant(duplicate_vids[0],
                                                existing_vlans)
-                m = ("VLAN{} is already assign to tenant \"{}\","
-                     " or has a duplicate entry.")
+                m = ("VLAN{} is already assign to tenant \"{}\", "
+                     "or has a duplicate entry. Plese check "
+                     "your 'vlans' variable in 'master.yml'")
                 raise Exception(m.format(vid, tenant))
             except TypeError:
                 m = "VLAN{} is found duplicate."

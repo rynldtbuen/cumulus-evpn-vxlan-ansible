@@ -12,12 +12,11 @@ class FilterModule:
         return {
             'cluster_to_range': self.cluster_to_range,
             'range_to_cluster': self.range_to_cluster,
-            'get_config': self.get_config
+            'get_config': self.get_config,
             }
 
     def get_config(self, v):
         method = getattr(getconfigvars, v)
-
         return method()
 
     def cluster_to_range(self, v):

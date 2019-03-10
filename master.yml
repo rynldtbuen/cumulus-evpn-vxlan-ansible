@@ -21,8 +21,8 @@ bgp_base_asn:
 
 #
 fabric:
-  - 'spine:swp1 -- leaf:swp20'
-  - 'spine:swp20 -- border:swp23'
+  - 'spine:swp1 -- leaf:swp21'
+  - 'spine:swp23 -- border:swp23'
 
 #
 external_connectivity:
@@ -36,6 +36,7 @@ vlans:
     - { id: '100', name: 'vlan100'}
     - { id: '101', name: 'vlan101'}
     - { id: '102', name: 'vlan102'}
+    - { id: '103', name: 'vlan103'}
   tenant02:
     - { id: '500', name: 'vlan500'}
     - { id: '501', name: 'vlan501'}
@@ -67,11 +68,11 @@ mlag_bonds:
   rack01:
     - { name: server01, members: 'swp1', vids: '100-102' }
     - { name: server02, members: 'swp2', vids: '500-502' }
+    - { name: server03, members: 'swp3', vids: '500-502' }
+    - { name: server04, members: 'swp4', vids: '100-103' }
   rack02:
     - { name: server03, members: 'swp11-12', vids: '100-102' }
     - { name: server04, members: 'swp13-14', vids: '500-502' }
-
-
 
 # optional_configs:
 #   - ptm

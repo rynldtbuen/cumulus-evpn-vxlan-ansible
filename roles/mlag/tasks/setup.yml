@@ -2,24 +2,88 @@
   set_fact:
     mlag: "{{ 'mlag' | get_config }}"
 
-- name: net show interface bonds json
-  nclu:
-    commands:
-      - show interface bonds json
-  register: sh_intfs_bonds_json
-  changed_when: false
+- name: net del bonds
+  block:
+  - name: net show interface bonds json (1)
+    nclu:
+      commands:
+        - show interface bonds json
+    register: _net_show
+    changed_when: false
+  - name: bond/bond slaves running configs (1)
+    set_fact:
+      running_bonds: "{{ _net_show['msg'] }}"
+  - name: net del bonds
+    nclu:
+      template: |
+        {%  set nclu = [] %}
+        {%  set _mlag = mlag[inventory_hostname] %}
+        {%  set i_bonds = _mlag['bonds'].keys() | list + ['peerlink'] %}
+        {%  for r_bond in running_bonds.keys() %}
+        {%      if r_bond in i_bonds %}
+        {%          if r_bond == 'peerlink' %}
+        {%              set i_members = _mlag['peer']['interface'].split(',') %}
+        {%          else %}
+        {%              set i_members = _mlag['bonds'][r_bond]['members'].split(',') %}{% endif %}
+        {%          set r_members = running_bonds[r_bond]['iface_obj']['members'].keys() %}
+        {%          set x = r_members | intersect(i_members) %}
+        {%          if x | length > 0 %}
+        {%              for r_item in r_members if r_item not in i_members %}
+        {%                  do nclu.append('del bond %s bond slaves %s' | format(r_bond, r_item) ) %}{% endfor %}
+        {%          else %}
+        {%              do nclu.append('del bond ' + r_bond) %}{% endif %}
+        {%      else %}
+        {%          do nclu.append('del bond ' + r_bond) %}{% endif %}
+        {%  endfor %}
+        {%  for item in nclu %}
+        {{ item }}
+        {%  endfor %}
+    register: nclu
+  - name: commit changes (1)
+    nclu:
+      commands:
+        - commit
+    when: nclu['changed']
+  when: inventory_hostname in mlag.keys()
 
-- name: net show clag status
-  nclu:
-    commands:
-      - show clag status json
-  register: sh_clag_status_json
-  changed_when: false
-
-- name: interface bonds
-  set_fact:
-    bonds_intfs: "{{ sh_intfs_bonds_json['msg'] }}"
-#
-- name: interface bonds
-  set_fact:
-    clag_intfs: "{{ sh_clag_status_json['msg'] }}"
+- name: net add bonds
+  block:
+  - name: net show interface bonds json (2)
+    nclu:
+      commands:
+        - show interface bonds json
+    register: _net_show
+    changed_when: false
+  - name: bond/bond slaves running configs (2)
+    set_fact:
+      running_bonds: "{{ _net_show['msg'] }}"
+  - name: net add bonds
+    nclu:
+      template: |
+        {%  set nclu = [] %}
+        {%  set _mlag = mlag[inventory_hostname] %}
+        {%  set i_bonds = _mlag['bonds'].keys() | list + ['peerlink'] %}
+        {%  for i_bond in i_bonds %}
+        {%      if i_bond == 'peerlink' %}
+        {%          set i_members = _mlag['peer']['interface'].split(',') %}
+        {%      else %}
+        {%          set i_members = _mlag['bonds'][i_bond]['members'].split(',') %}{% endif %}
+        {%      if i_bond not in running_bonds.keys() %}
+        {%          do nclu.append('add bond %s bond slaves %s' | format(i_bond, i_members | join(',')) ) %}
+        {%      else %}
+        {%          set r_members = running_bonds[i_bond]['iface_obj']['members'].keys() %}
+        {%          set members_diff = i_members | difference(r_members) %}
+        {%          if members_diff | length > 0 %}
+        {%              do nclu.append('add bond %s bond slaves %s' | format(i_bond, members_diff | join(','))) %}{% endif %}
+        {%      endif %}
+        {%  endfor %}
+        {%  for item in nclu %}
+        {{ item }}
+        {%  endfor %}
+    register: nclu
+  - name: commit changes (2)
+    nclu:
+      commands:
+        - commit
+    when: nclu['changed']
+  when: inventory_hostname in mlag.keys()

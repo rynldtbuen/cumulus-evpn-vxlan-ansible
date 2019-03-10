@@ -1,0 +1,39 @@
+- name: net show configuration commands | egrep 'net add vxlan \w+(,.*|-.*)'
+  shell: "net show configuration commands | egrep 'net add vxlan \\w+(,.*|-.*)'"
+  register: _running_configs
+  ignore_errors: true
+  changed_when: false
+
+- name: vxlan interface running configs (2)
+  set_fact:
+    running_configs: "{{ _running_configs.stdout_lines }}"
+
+- name: vxlan interface intent configs
+  set_fact:
+    intent_configs: |
+      {%  set vni = vxlan[inventory_hostname]['summary'] %}
+      net add vxlan {{ vni }} bridge arp-nd-suppress on
+      net add vxlan {{ vni }} bridge learning off
+      net add vxlan {{ vni }} stp bpduguard
+      net add vxlan {{ vni }} stp portbpdufilter
+
+- block:
+  - name: net del/add vxlan interfaces
+    nclu:
+      template: |
+        {%  set nclu = [] %}
+        {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
+        {%  for item_add in _intent_configs if item_add not in running_configs %}
+        {%    set _item_add = item_add.replace('net', '').strip() %}
+        {%      do nclu.append(_item_add) %}
+        {%  endfor %}
+        {% for item in nclu %}
+        {{ item }}
+        {% endfor %}
+    register: nclu
+  - name: commit changes (2)
+    nclu:
+      commands:
+        - commit
+    when: nclu['changed']
+  when: running_configs | length > 0

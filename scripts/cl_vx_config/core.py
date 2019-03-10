@@ -1,4 +1,4 @@
-from helpers import Utilities, CheckVars
+from cl_vx_config.helpers import Utilities, CheckVars
 
 from ansible.inventory.manager import InventoryManager
 from ansible.parsing.dataloader import DataLoader
@@ -13,8 +13,10 @@ from itertools import permutations
 import os
 import re
 
+# Class that generates ansible variables
+# needed to deploy Cumulus VxLAN EVPN.
 
-# Class that generates ansible variables needed to configure Cumulus VxLAN EVPN.
+
 class GetConfigVars:
 
     def __init__(self):
@@ -89,7 +91,8 @@ class GetConfigVars:
         clag_vxlan_anycast_base_subnet = self.utils.load_masterfile(
             'mlag_vxlan_anycast_base_subnet')
 
-        lo_subnets = list(base_subnet.values()) + [clag_vxlan_anycast_base_subnet]
+        lo_subnets = list(base_subnet.values()) + \
+            [clag_vxlan_anycast_base_subnet]
         self.chk.subnets({'loopback_ipv4_base_subnet': lo_subnets})
         self.chk.reserved_subnets({'loopback_ipv4_base_subnet': lo_subnets})
         lo = {}
@@ -201,20 +204,25 @@ class GetConfigVars:
                 )
 
             if host_id % 2 == 0:
-                clag_role = 'secondary'
+                clag_role = '2000'
                 backup_ip = self.utils.get_address(
                             loopback_ipv4_address, -1)
+                peer_ip = '169.254.1.1'
+                ip = '169.254.1.2/30'
             else:
-                clag_role = 'primary'
+                clag_role = '1000'
                 backup_ip = self.utils.get_address(
                     loopback_ipv4_address, +1)
+                peer_ip = '169.254.1.2'
+                ip = '169.254.1.1/30'
 
-            peerlink_interface = self.utils.range_cluster(self.utils.unique(
+            peerlink_interface = sorted(self.utils.unique(
                 self.utils.cluster_to_range(mlag_peerlink_interface)))
 
-            clag[host] = {'role': clag_role, 'system_mac': system_mac,
-                          'peerlink_interface': peerlink_interface,
+            clag[host] = {'priority': clag_role, 'system_mac': system_mac,
+                          'interface': ",".join(peerlink_interface),
                           'backup_ip': backup_ip,
+                          'peer_ip': peer_ip, 'ip': ip
                           }
 
         return clag
@@ -232,13 +240,13 @@ class GetConfigVars:
             for item in mlag[rack]:
                 vids = self.utils.unique(
                     self.utils.cluster_to_range(item['vids']))
-                alias = ",".join(sorted(
-                    [vlans[vid]['name'] for vid in vids]))
+                alias = self.utils.range_cluster(
+                    [vlans[vid]['name'] for vid in vids])
                 tenant = "".join(
                     self.utils.unique([vlans[vid]['tenant'] for vid in vids]))
 
-                members = self.utils.unique(
-                    self.utils.cluster_to_range(item['members']))
+                members = sorted(self.utils.unique(
+                    self.utils.cluster_to_range(item['members'])))
                 _members.extend(members)
                 type = 'trunk' if len(vids) > 1 else 'access'
                 clag_id = clag_interface[rack][item['name']]
@@ -248,12 +256,9 @@ class GetConfigVars:
                     'clag_id': clag_id,
                     'alias': "{}: {}".format(tenant, alias),
                     'tenant': tenant,
-                    'members': self.utils.range_cluster(members),
+                    'members': ",".join(members),
                     'type': type
                     }
-
-            # bonds[rack]['summary'].update(
-            #     {'members': utils.range_cluster(_members)})
 
         _bonds = self.utils.default_to_dict(bonds)
         _mlag = defaultdict(lambda: defaultdict(dict))
@@ -263,7 +268,11 @@ class GetConfigVars:
                 _mlag[host]['bonds'] = _bonds[rack_name]
                 _mlag[host]['peer'] = mlag_peer[host]
 
-        return self.utils.default_to_dict(_mlag)
+        __mlag = {'mlag': self.utils.default_to_dict(_mlag)}
+
+        self.interfaces_list(__mlag)
+
+        return __mlag['mlag']
 
     def _vlans_subnet(self):
         vlans = self.utils.load_masterfile('vlans')
@@ -375,20 +384,24 @@ class GetConfigVars:
 
     def vxlan(self):
         host_vlans = self._host_vlans()
-
+        base_name = 'vni'
         vxlan = defaultdict(lambda: defaultdict(dict))
         for host in host_vlans:
             # host_id = self._host_id(host)
             vxlan[host]['local_tunnelip'] = self.utils.get_address(
                 self._loopback_ipv4_address(host))
+            summary = []
             for vid, value in host_vlans[host].items():
-                name = "vni{}".format(vid)
+                name = "{}{}".format(base_name, vid)
+                summary.append(vid)
+                vxlan[host]['vxlan'][name] = {
+                    'tenant': value['tenant'],
+                    'id': vid,
+                    'vlan': vid,
+                    'type': value['type']
+                    }
 
-                vxlan[host]['vxlan'][name] = {'tenant': value['tenant'],
-                                              'id': vid,
-                                              'vlan': vid,
-                                              'type': value['type']
-                                              }
+            vxlan[host]['summary'] = base_name + self.utils.range_cluster(summary)
 
         return self.utils.default_to_dict(vxlan)
 
@@ -500,7 +513,7 @@ class GetConfigVars:
         return _links
 
     def interfaces_unnumbered(self):
-        fabric = {'fabric': self.utils.load_masterfile('fabric') }
+        fabric = {'fabric': self.utils.load_masterfile('fabric')}
         links = self._links(fabric)
         interfaces_unnum = defaultdict(dict)
         for _, v in links['fabric'].items():
@@ -516,14 +529,6 @@ class GetConfigVars:
                             'remote_port': item['nei_iface_range'][index],
                             'peer_group': item['nei_grp']
                             }
-
-        # for host in unnumbered_iface:
-        #     for peer, v in groupby(unnumbered_iface[host]['interfaces'], lambda x: x['peer_group']):
-        #         iface_list = [item['interface'] for item in list(v)]
-        #         unnumbered_iface[host]['summary'].append({
-        #             'interfaces': self.utils.range_to_cluster(iface_list),
-        #             'peer_group': peer, 'type': 'unnumbered_iface', 'address': None
-        #         })
 
         return interfaces_unnum
 
@@ -684,24 +689,37 @@ class GetConfigVars:
             f.write(output)
         return output
 
-    def interfaces_list(self):
+    def interfaces_list(self, v):
         intfs_list = defaultdict(dict)
 
-        external_connectivity = self.interfaces_ip()
-        fabric = self.interfaces_unnumbered()
-        mlag = self.mlag()
+        iface = {
+            'external_connectivity': 'interfaces_ip',
+            'fabric': 'interfaces_unnumbered',
+            'mlag': 'mlag',
+        }
 
-        for host, intfs in external_connectivity.items():
+        getconfigvars = GetConfigVars()
+
+        for k, _v in v.items():
+            if k in iface:
+                iface[k] = _v
+
+        for a, b in iface.items():
+            if type(b) is str:
+                x = getattr(getconfigvars, b)
+                iface[a] = x()
+
+        for host, intfs in iface['external_connectivity'].items():
             sub_intfs = self.utils.unique(
                 [item.split('.')[0] for item in intfs.keys() if '.' in item])
             intfs_list[host].update({'external_connectivity': sub_intfs})
 
-        for host, intfs in fabric.items():
+        for host, intfs in iface['fabric'].items():
                 intfs_list[host].update({'fabric': list(intfs.keys())})
 
-        for host, clag in mlag.items():
+        for host, clag in iface['mlag'].items():
             peerlink = self.utils.cluster_to_range(
-                clag['peer']['peerlink_interface'])
+                clag['peer']['interface'])
             members = []
             for bond, v in clag['bonds'].items():
                 for member in self.utils.cluster_to_range(v['members']):
@@ -710,4 +728,3 @@ class GetConfigVars:
             intfs_list[host].update({'mlag_bonds': members})
 
         self.chk.interfaces_list(intfs_list)
-        return intfs_list

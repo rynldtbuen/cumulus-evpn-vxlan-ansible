@@ -1,8 +1,0 @@
-# - hosts: localhost
-#   gather_facts: false
-#   tasks:
-#
-#   - set_fact:
-#       mlag: "{{ 'mlag' | get_config }}"
-
-  # - shell: which ansible

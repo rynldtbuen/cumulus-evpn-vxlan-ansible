@@ -1,2 +1,3 @@
+- import_tasks: routing.yml
 - import_tasks: setup.yml
-- import_tasks: nclu.yml
+# - import_tasks: nclu.yml

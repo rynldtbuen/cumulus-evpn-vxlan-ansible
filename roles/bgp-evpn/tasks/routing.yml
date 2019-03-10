@@ -1,0 +1,73 @@
+- name: get device running routing configs
+  shell: "net show configuration commands | grep 'net add routing'"
+  register: _running_configs_r
+  ignore_errors: true
+  changed_when: false
+
+- name: running routing configs stdout_lines
+  set_fact:
+    running_configs_r: "{{ _running_configs_r.stdout_lines }}"
+
+- name: intent routing configs
+  set_fact:
+    intent_configs_r: |
+      {# Default routing commands #}
+      net add routing defaults datacenter
+      net add routing service integrated-vtysh-config
+      net add routing log syslog informational
+      {# Loopback routes #}
+      net add routing route-map LOOPBACK_ROUTES permit 10 match interface lo
+
+- name: net del
+  block:
+  - name: del routing config list
+    set_fact:
+      del_configs_r: |
+        {%  set nclu = [] %}
+        {%  set _intent_configs_r = intent_configs_r.split('\n') %}
+        {%  for item in running_configs_r if item not in _intent_configs_r %}
+        {%    set _item = item.replace('add ', 'del ').replace('net', '').strip() %}
+        {%    do nclu.append(_item | regex_search('\w+\s+.*\d+')) %}
+        {%  endfor %}
+        {{ nclu }}
+  - name: deleting routing configs
+    nclu:
+      template: |
+        {% for item in del_configs_r %}
+        {{ item }}
+        {% endfor %}
+      atomic: true
+    register: net_del_r
+    when: del_configs_r | length > 0
+  - name: show commit last
+    nclu:
+      commands:
+        - show commit last
+    when: net_del_r['changed']
+  when: running_configs_r | length > 0
+
+- name: net add
+  block:
+  - name: add routing config list
+    set_fact:
+      add_configs_r: |
+        {%  set nclu = [] %}
+        {%  set _intent_configs_r = intent_configs_r.split('\n') %}
+        {%  for item in _intent_configs_r if item not in running_configs_r and item.startswith('net') %}
+        {%    do nclu.append(item.replace('net', '').strip()) %}
+        {%  endfor %}
+        {{ nclu }}
+  - name: adding routing configs
+    nclu:
+      template: |
+        {% for item in add_configs_r %}
+        {{ item }}
+        {% endfor %}
+      atomic: true
+    register: net_add_r
+    when: add_configs_r | length > 0
+  - name: show commit last
+    nclu:
+      commands:
+        - show commit last
+    when: net_add_r['changed']
