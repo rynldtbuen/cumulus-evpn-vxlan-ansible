@@ -1,3 +1,6 @@
-- import_tasks: routing.yml
-- import_tasks: setup.yml
-# - import_tasks: nclu.yml
+- name: generate host bgp variables
+  set_fact:
+    bgp: "{{ 'bgp' | get_config }}"
+  run_once: true
+  
+- include_tasks: "{{ ansible_network_os }}.yml"

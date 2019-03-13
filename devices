@@ -1,6 +1,5 @@
 localhost ansible_connection=local ansible_become=true ansible_become_pass=admin ansible_python_interpreter=/usr/bin/python3
 
-
 [leaf]
 leaf01 mgmt_hwaddr='0c:d9:c8:b7:bc:00'
 leaf02 mgmt_hwaddr='0c:d9:c8:3c:03:00'
@@ -27,13 +26,14 @@ ansible_become_pass=CumulusLinux!
 ansible_network_os=cumulus
 
 [edge]
-edge01 ansible_host=172.24.0.254
+edge01
 
 [edge:vars]
-ansible_ssh_pass=admin
+#ansible_ssh_pass=admin
 ansible_user=vyos
 ansible_network_os=vyos
 ansible_connection=network_cli
+#ansible_python_interpreter="/usr/bin/env python3"
 
 [network_device:children]
 leaf

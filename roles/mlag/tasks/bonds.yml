@@ -6,7 +6,7 @@
 
 - name: bonds running configs
   set_fact:
-    running_configs: "{{ _running_configs.stdout_lines }}"
+    running_configs: "{{ _running_configs.stdout_lines | map('trim') | list }}"
 
 - name: bonds intent configs
   set_fact:
@@ -33,12 +33,13 @@
       {%  set nclu = [] %}
       {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
       {%  for item_add in _intent_configs if item_add not in running_configs %}
-      {%    set _item_add = item_add.replace('net', '').strip() %}
+      {%    set _item_add = item_add.replace('net add', 'add') %}
       {%      do nclu.append(_item_add) %}
       {%  endfor %}
       {%  for item in nclu %}
       {{ item }}
       {%  endfor %}
+    abort: true
   register: nclu
 - name: commit changes (4)
   nclu:

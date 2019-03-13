@@ -1,0 +1,40 @@
+"bgp": {
+"edge01": {
+                "tenant01": {
+                    "as_number": 64531,
+                    "neighbors": {
+                        "172.28.0.10/30": {
+                            "local_address": "172.28.0.9/30",
+                            "peer_group": "border02",
+                            "remote_as": 64552,
+                            "remote_id": "10.254.1.130"
+                        },
+                        "172.28.0.2/30": {
+                            "local_address": "172.28.0.1/30",
+                            "peer_group": "border01",
+                            "remote_as": 64551,
+                            "remote_id": "10.254.1.129"
+                        }
+                    },
+                    "router_id": "10.254.2.4"
+                },
+                "tenant02": {
+                    "as_number": 64531,
+                    "neighbors": {
+                        "172.28.0.14/30": {
+                            "local_address": "172.28.0.13/30",
+                            "peer_group": "border02",
+                            "remote_as": 64552,
+                            "remote_id": "10.254.1.130"
+                        },
+                        "172.28.0.6/30": {
+                            "local_address": "172.28.0.5/30",
+                            "peer_group": "border01",
+                            "remote_as": 64551,
+                            "remote_id": "10.254.1.129"
+                        }
+                    },
+                    "router_id": "10.254.2.4"
+                }
+            }
+}

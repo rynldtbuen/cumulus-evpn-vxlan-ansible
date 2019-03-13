@@ -1,45 +1,6 @@
 - name: generate host loopback variables
   set_fact:
     loopback: "{{ 'loopback' | get_config }}"
+  run_once: true
 
-- name: running loopback configs
-  shell: "net show configuration commands | grep 'net add lo'"
-  register: _running_configs
-  ignore_errors: true
-  changed_when: false
-
-- name: loopback interface running configs
-  set_fact:
-    running_configs: "{{ _running_configs.stdout_lines }}"
-
-- name: loopback interface intent configs
-  set_fact:
-    intent_configs: |
-      {% set lo = loopback[inventory_hostname] %}
-      {% for lo_ip in lo['ip_addresses'] %}
-      net add loopback lo ip address {{ lo_ip }}
-      {% endfor %}
-      {% if lo['clag_vxlan_anycast_ip'] is not none %}
-      net add loopback lo clag vxlan-anycast-ip {{ lo['clag_vxlan_anycast_ip'] }}
-      {% endif %}
-
-- name: net add/del loopback interface
-  nclu:
-    template: |
-      {%  set nclu = [] %}
-      {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
-      {%  for item_del in running_configs if item_del not in _intent_configs %}
-      {%      set _item_del = item_del.replace('add ', 'del ').replace('net', '').strip() %}
-      {%      do nclu.append(_item_del) %}{% endfor %}
-      {%  for item_add in _intent_configs if item_add not in running_configs  %}
-      {%      set _item_add = item_add.replace('net', '').strip() %}
-      {%      do nclu.append(_item_add) %}{% endfor %}
-      {%  for item in nclu %}
-      {{ item }}
-      {%  endfor %}
-  register: nclu
-- name: commit changes
-  nclu:
-    commands:
-      - commit
-  when: nclu['changed']
+- include_tasks: "{{ ansible_network_os }}.yml"

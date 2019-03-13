@@ -1,39 +1,46 @@
-- name: net show configuration commands | egrep 'net add vxlan \w+(,.*|-.*)'
-  shell: "net show configuration commands | egrep 'net add vxlan \\w+(,.*|-.*)'"
+- name: net show configuration commands | egrep 'net add vxlan (\w+,.*|\w+-.*|\w+) (alias|bridge arp|stp).*'
+  shell: "net show configuration commands | egrep 'net add vxlan (\\w+,.*|\\w+-.*|\\w+) (alias|bridge arp|stp).*'
+"
   register: _running_configs
   ignore_errors: true
   changed_when: false
 
-- name: vxlan interface running configs (2)
+- name: vxlan running configs (2)
   set_fact:
-    running_configs: "{{ _running_configs.stdout_lines }}"
+    running_configs: "{{ _running_configs.stdout_lines | map('trim') | list }}"
 
-- name: vxlan interface intent configs
+- name: vxlan interface intent configs (2)
   set_fact:
     intent_configs: |
-      {%  set vni = vxlan[inventory_hostname]['summary'] %}
-      net add vxlan {{ vni }} bridge arp-nd-suppress on
-      net add vxlan {{ vni }} bridge learning off
-      net add vxlan {{ vni }} stp bpduguard
-      net add vxlan {{ vni }} stp portbpdufilter
+      {%  set _vxlan = vxlan[inventory_hostname] %}
+      {%  for k, v in _vxlan['vxlan'] | groupby('type') %}
+      {%      if k == 'l2' %}
+      {%  set base_name = v | map(attribute='name') | join(',') | regex_search('(\w+|\d+)(?<!\d)') %}
+      {%  set summary = base_name + v | map(attribute='id') | list | range_to_cluster %}
+      net add vxlan {{ summary }} bridge arp-nd-suppress on
+      net add vxlan {{ summary }} stp bpduguard
+      net add vxlan {{ summary }} stp portbpdufilter
+      {%      endif %}
+      {%  endfor %}
 
-- block:
-  - name: net del/add vxlan interfaces
-    nclu:
-      template: |
-        {%  set nclu = [] %}
-        {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
-        {%  for item_add in _intent_configs if item_add not in running_configs %}
-        {%    set _item_add = item_add.replace('net', '').strip() %}
-        {%      do nclu.append(_item_add) %}
-        {%  endfor %}
-        {% for item in nclu %}
-        {{ item }}
-        {% endfor %}
-    register: nclu
-  - name: commit changes (2)
-    nclu:
-      commands:
-        - commit
-    when: nclu['changed']
-  when: running_configs | length > 0
+- name: net del/add vxlan interfaces (2)
+  nclu:
+    template: |
+      {%  set nclu = [] %}
+      {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
+      {%  for item_del in running_configs if item_del not in _intent_configs %}
+      {%      set _item_del = item_del.replace('net add', 'del') %}
+      {%      do nclu.append(_item_del) %}{% endfor %}
+      {%  for item_add in _intent_configs if item_add not in running_configs %}
+      {%      set _item_add = item_add.replace('net add', 'add') %}
+      {%      do nclu.append(_item_add) %}{% endfor %}
+      {%  for item in nclu %}
+      {{ item }}
+      {%  endfor %}
+    abort: true
+  register: nclu
+- name: commit changes (2)
+  nclu:
+    commands:
+      - commit
+  when: nclu['changed']

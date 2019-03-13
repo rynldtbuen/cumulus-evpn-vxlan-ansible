@@ -1,1 +1,1 @@
-{"rack02": {"server03": 1, "server04": 2}, "rack01": {"server01": 1, "server02": 2, "server03": 3, "server04": 4}}
+{"rack01": {"server01": 1}, "rack02": {"server03": 1}}

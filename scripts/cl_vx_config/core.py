@@ -268,11 +268,7 @@ class GetConfigVars:
                 _mlag[host]['bonds'] = _bonds[rack_name]
                 _mlag[host]['peer'] = mlag_peer[host]
 
-        __mlag = {'mlag': self.utils.default_to_dict(_mlag)}
-
-        self.interfaces_list(__mlag)
-
-        return __mlag['mlag']
+        return self.utils.default_to_dict(_mlag)
 
     def _vlans_subnet(self):
         vlans = self.utils.load_masterfile('vlans')
@@ -385,23 +381,20 @@ class GetConfigVars:
     def vxlan(self):
         host_vlans = self._host_vlans()
         base_name = 'vni'
-        vxlan = defaultdict(lambda: defaultdict(dict))
+        vxlan = defaultdict(lambda: defaultdict(list))
         for host in host_vlans:
             # host_id = self._host_id(host)
             vxlan[host]['local_tunnelip'] = self.utils.get_address(
                 self._loopback_ipv4_address(host))
-            summary = []
             for vid, value in host_vlans[host].items():
                 name = "{}{}".format(base_name, vid)
-                summary.append(vid)
-                vxlan[host]['vxlan'][name] = {
+                vxlan[host]['vxlan'].append({
+                    'name': name,
                     'tenant': value['tenant'],
                     'id': vid,
                     'vlan': vid,
                     'type': value['type']
-                    }
-
-            vxlan[host]['summary'] = base_name + self.utils.range_cluster(summary)
+                    })
 
         return self.utils.default_to_dict(vxlan)
 
@@ -535,7 +528,7 @@ class GetConfigVars:
     def _interfaces_subnet(self):
         ptp_net = self.utils.load_masterfile('external_connectivity')
         # base_subnet = self.utils.load_masterfile('external_base_subnet')
-        base_net_prefix = '172.24.0.0/14'
+        base_net_prefix = '172.28.0.0/14'
         data = self.utils.load_datafile('external_subnets')
         try:
             if data['base_net_prefix'] != base_net_prefix:
@@ -615,7 +608,7 @@ class GetConfigVars:
         intf_ip = self.interfaces_ip()
 
         bgp_neighbors = defaultdict(
-            lambda: defaultdict(lambda: defaultdict(dict)))
+            lambda: defaultdict(lambda: defaultdict(list)))
         for group, asn in bgp_base_asn.items():
             for host in self._groups(group):
                 host_id = self._host_id(host)
@@ -629,33 +622,82 @@ class GetConfigVars:
                 common[host] = {'asn': _asn, 'router_id': router_id}
 
         for host in intf_unnum:
-            peer_groups = self.utils.unique([
-                v['peer_group'] for intf, v in intf_unnum[host].items()
-                ])
-            bgp_neighbors[host]['global']['peer_groups'] = peer_groups
+            # peer_groups = self.utils.unique([
+            #     v['peer_group'] for intf, v in intf_unnum[host].items()
+            #     ])
+            # bgp_neighbors[host]['global']['peer_groups'] = peer_groups
+            _bgp_neighbors = bgp_neighbors[host]['global']
+            _bgp_neighbors['router_id'] = common[host]['router_id']
+            _bgp_neighbors['as'] = common[host]['asn']
+
             for intf, v in intf_unnum[host].items():
-                bgp_neighbors[host]['global']['router_id'] = common[host]['router_id']
-                bgp_neighbors[host]['global']['as_number'] = common[host]['asn']
-                bgp_neighbors[host]['global']['neighbors'][intf] = {
-                    'remote_as': 'external',
-                    'peer_group': v['peer_group'],
-                    'remote_id': common[v['remote_host']]['router_id'],
-                    'remote_peer': v['remote_host']
-                    }
+                _bgp_neighbors['neighbors'].append({
+                    'neighbor': intf,
+                    'as': 'external',
+                    'group': v['peer_group'],
+                    'host': v['remote_host'],
+                    'id': common[v['remote_host']]['router_id']
+                })
+                # bgp_neighbors[host]['global']['router_id'] = common[host]['router_id']
+                # bgp_neighbors[host]['global']['as_number'] = common[host]['asn']
+                # bgp_neighbors[host]['global']['neighbors'][intf] = {
+                #     'remote_as': 'external',
+                #     'peer_group': v['peer_group'],
+                #     'remote_id': common[v['remote_host']]['router_id'],
+                #     'remote_peer': v['remote_host']
+                #     }
 
         for host in intf_ip:
             for intf, v in intf_ip[host].items():
-                bgp_neighbors[host][v['vrf']]['router_id'] = router_id
-                bgp_neighbors[host][v['vrf']
-                                    ]['as_number'] = common[host]['asn']
-                bgp_neighbors[host][v['vrf']]['neighbors'][v['remote_ipv4_address']] = {
-                    'remote_as': common[v['remote_host']]['asn'],
-                    'peer_group': v['remote_host'],
-                    'remote_id': common[v['remote_host']]['router_id'],
-                    'local_address': v['ipv4_address']
-                    }
+                _bgp_neighbors = bgp_neighbors[host][v['vrf']]
+                _bgp_neighbors['router_id'] = common[host]['router_id']
+                _bgp_neighbors['as'] = common[host]['asn']
+
+                _bgp_neighbors['neighbors'].append({
+                    'neighbor': v['remote_ipv4_address'].split('/')[0],
+                    'host': v['remote_host'],
+                    'as': common[v['remote_host']]['asn'],
+                    'id': common[v['remote_host']]['router_id'],
+                })
+                # bgp_neighbors[host][v['vrf']]['router_id'] = common[host]['router_id']
+                # bgp_neighbors[host][v['vrf']]['as_number'] = common[host]['asn']
+                # bgp_neighbors[host][v['vrf']]['neighbors'][v['remote_ipv4_address'].split('/')[0]] = {
+                #     'remote_as': common[v['remote_host']]['asn'],
+                #     'peer_group': v['remote_host'],
+                #     'remote_id': common[v['remote_host']]['router_id'],
+                #     'local_address': v['ipv4_address']
+                #     }
 
         return self.utils.default_to_dict(bgp_neighbors)
+
+    def interfaces_list(self):
+        intfs_list = defaultdict(dict)
+
+        interfaces = {
+            'external_connectivity': self.interfaces_ip(),
+            'fabric': self.interfaces_unnumbered(),
+            'mlag': self.mlag()
+        }
+
+        for host, intfs in interfaces['external_connectivity'].items():
+            sub_intfs = self.utils.unique(
+                [item.split('.')[0] for item in intfs.keys() if '.' in item])
+            intfs_list[host].update({'external_connectivity': sub_intfs})
+
+        for host, intfs in interfaces['fabric'].items():
+                intfs_list[host].update({'fabric': list(intfs.keys())})
+
+        for host, clag in interfaces['mlag'].items():
+            peerlink = self.utils.cluster_to_range(
+                clag['peer']['interface'])
+            members = []
+            for bond, v in clag['bonds'].items():
+                for member in self.utils.cluster_to_range(v['members']):
+                    members.append(member)
+            intfs_list[host].update({'mlag_peerlink_interface': peerlink})
+            intfs_list[host].update({'mlag_bonds': members})
+
+        self.chk.interfaces_list(intfs_list)
 
     def ptm(self):
         ext_con = self.utils.load_masterfile('external_connectivity')
@@ -688,43 +730,3 @@ class GetConfigVars:
         with open("files/ptm.dot", 'w') as f:
             f.write(output)
         return output
-
-    def interfaces_list(self, v):
-        intfs_list = defaultdict(dict)
-
-        iface = {
-            'external_connectivity': 'interfaces_ip',
-            'fabric': 'interfaces_unnumbered',
-            'mlag': 'mlag',
-        }
-
-        getconfigvars = GetConfigVars()
-
-        for k, _v in v.items():
-            if k in iface:
-                iface[k] = _v
-
-        for a, b in iface.items():
-            if type(b) is str:
-                x = getattr(getconfigvars, b)
-                iface[a] = x()
-
-        for host, intfs in iface['external_connectivity'].items():
-            sub_intfs = self.utils.unique(
-                [item.split('.')[0] for item in intfs.keys() if '.' in item])
-            intfs_list[host].update({'external_connectivity': sub_intfs})
-
-        for host, intfs in iface['fabric'].items():
-                intfs_list[host].update({'fabric': list(intfs.keys())})
-
-        for host, clag in iface['mlag'].items():
-            peerlink = self.utils.cluster_to_range(
-                clag['peer']['interface'])
-            members = []
-            for bond, v in clag['bonds'].items():
-                for member in self.utils.cluster_to_range(v['members']):
-                    members.append(member)
-            intfs_list[host].update({'mlag_peerlink_interface': peerlink})
-            intfs_list[host].update({'mlag_bonds': members})
-
-        self.chk.interfaces_list(intfs_list)

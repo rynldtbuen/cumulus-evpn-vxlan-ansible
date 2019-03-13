@@ -454,4 +454,4 @@ class CheckVars:
                     if intf in v[b]:
                         m = ("Overlapping interface: {} in {}. "
                              "Check your \"{}\" and \"{}\" variable in \"master.yml\".")
-                        raise ValueError(m.format(intf, host, a, b))
+                        raise Exception(m.format(intf, host, a, b))

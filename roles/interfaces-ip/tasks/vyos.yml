@@ -1,23 +1,41 @@
-- name: get interfaces ip
-  napalm_get_facts:
-    hostname={{ ansible_host }}
-    username={{ ansible_user }}
-    dev_os={{ ansible_network_os }}
-    password={{ ansible_ssh_pass }}
-    filter='interfaces_ip'
-  register: result
+- name: show configuration commands| egrep 'set interfaces ethernet \w+ (vif|address).*'
+  vyos_command:
+    commands:
+        - show configuration commands| egrep 'set interfaces ethernet \w+ (vif|address).*'
+  register: show
 
-- set_fact:
-    test01: |
-      {%  set interfaces_ip = result['ansible_facts']['napalm_interfaces_ip'] %}
-      {%   for intf, v in interfaces_ip.items() if '.' in intf %}
-      {%      for address, prefix in v['ipv4'].items() %}
-      {%      set ip = '%s/%s' | format(address, prefix['prefix_length']) %}
+- name: interfaces ethernet running configs
+  set_fact:
+    running_configs: "{{ show.stdout_lines | flatten }}"
 
-      {%       endfor %}
-      {%    endfor %}
+- name: interfaces ethernet intent configs
+  set_fact:
+    intent_configs: |
+      {# Default interfaces configs #}
+      set interfaces ethernet eth2 address '172.24.0.254/24'
+      set interfaces ethernet eth3 address 'dhcp'
+      {% for vif, value in interfaces_ip[inventory_hostname].items() %}
+      {%    set intf, _vif = vif.split('.') %}
+      set interfaces ethernet {{ intf }} vif {{ _vif }} address '{{ value['ipv4_address'] }}'
+      {% endfor %}
 
-- name: add interface
+- name: interfaces commands
+  set_fact:
+    commands: |
+      {%  set vyos = [] %}
+      {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
+      {%  for item_del in running_configs if item_del not in _intent_configs %}
+      {%      set _item_del = item_del.replace('set', 'delete').strip() %}
+      {%      do vyos.append(_item_del) %}{% endfor %}
+      {%  for item_add in _intent_configs if item_add not in running_configs %}
+      {%      set _item_add = item_add.strip() %}
+      {%      do vyos.append(_item_add) %}{% endfor %}
+      {{ vyos }}
+
+- name: set/delete interfaces configs
   vyos_config:
-    src: vyos.j2
+    lines:
+      - "{{ item }}"
     save: yes
+  loop: "{{ commands }}"
+  when: commands | length > 0

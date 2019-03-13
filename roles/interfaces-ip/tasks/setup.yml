@@ -1,3 +1,0 @@
-- name: set ip_interface variables
-  set_fact:
-    interfaces_ip: "{{ 'interface_ip' | get_config }}"

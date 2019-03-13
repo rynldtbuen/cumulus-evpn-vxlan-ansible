@@ -56,3 +56,6 @@ dhcp-option=option:router,{{ _gateway }}
 {% for host in groups['cumulus'] | sort %}
 dhcp-host={{ hostvars[host]['mgmt_hwaddr'] }},{{ host }}
 {% endfor %}
+{% for host in groups['edge'] %}
+dhcp-host={{ host[host]['ansible_host'] }},{{ host }}
+{% endfor %}

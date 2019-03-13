@@ -16,6 +16,8 @@ class FilterModule:
             }
 
     def get_config(self, v):
+        getconfigvars.interfaces_list()
+
         method = getattr(getconfigvars, v)
         return method()
 

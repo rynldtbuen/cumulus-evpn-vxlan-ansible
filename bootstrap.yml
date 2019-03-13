@@ -10,7 +10,7 @@
       user: "{{ ansible_user }}"
       key: "{{ lookup('file', '/home/reynold/.ssh/id_rsa.pub') }}"
       state: present
-    tags: ssh_key
+    tags: ssh-key
 
   - name: check if internet is reachable
     shell: 'ping -c 5 www.google.com'

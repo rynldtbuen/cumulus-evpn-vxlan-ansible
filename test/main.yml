@@ -1,0 +1,66 @@
+- hosts: all
+  gather_facts: false
+  vars:
+    bgp:
+      "edge01": {
+                      "tenant01": {
+                          "as_number": 64531,
+                          "neighbors": {
+                              "172.28.0.10/30": {
+                                  "local_address": "172.28.0.9/30",
+                                  "peer_group": "border02",
+                                  "remote_as": 64552,
+                                  "remote_id": "10.254.1.130"
+                              },
+                              "172.28.0.2/30": {
+                                  "local_address": "172.28.0.1/30",
+                                  "peer_group": "border01",
+                                  "remote_as": 64551,
+                                  "remote_id": "10.254.1.129"
+                              }
+                          },
+                          "router_id": "10.254.2.4"
+                      },
+                      "tenant02": {
+                          "as_number": 64531,
+                          "neighbors": {
+                              "172.28.0.14/30": {
+                                  "local_address": "172.28.0.13/30",
+                                  "peer_group": "border02",
+                                  "remote_as": 64552,
+                                  "remote_id": "10.254.1.130"
+                              },
+                              "172.28.0.6/30": {
+                                  "local_address": "172.28.0.5/30",
+                                  "peer_group": "border01",
+                                  "remote_as": 64551,
+                                  "remote_id": "10.254.1.129"
+                              }
+                          },
+                          "router_id": "10.254.2.4"
+                      }
+                  }
+  tasks:
+  - set_fact:
+      test01: |
+        {%  for k, v in bgp['edge01'].values() | list | groupby('as_number') %}
+        set protocols bgp {{ k}} maximum-paths ebgp 2
+        {%      for rid, _v in v | groupby('router_id') %}
+        set protocols bgp {{ k }} parameters router-id {{ rid }}
+        {%      endfor %}
+        {%      for item in v %}
+        {%          for addr, nei in item['neighbors'].items() %}
+        set protocols bgp {{ k}} neighbor {{ addr.split('/')[0] }} remote-as {{ nei['remote_as'] }}
+        {%          endfor %}
+        {%      endfor %}
+        {%  endfor %}
+
+
+  - set_fact:
+      test02: "{{ test01.split('\n') | reject('equalto', '') | list }}"
+  # - nclu:
+  #     commands:
+  #       - show configuration commands
+  #   register: show
+  # - set_fact:
+  #     test01: "{{ show['msg'] | regex_findall('net add vxlan \\w+.*')}}"

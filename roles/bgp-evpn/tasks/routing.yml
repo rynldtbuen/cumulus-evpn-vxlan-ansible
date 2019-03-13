@@ -1,16 +1,17 @@
-- name: get device running routing configs
+- name: net show configuration commands | grep 'net add routing'
   shell: "net show configuration commands | grep 'net add routing'"
-  register: _running_configs_r
+  register: _running_configs
   ignore_errors: true
   changed_when: false
 
-- name: running routing configs stdout_lines
+- name: routing running configs
   set_fact:
-    running_configs_r: "{{ _running_configs_r.stdout_lines }}"
+    running_configs: "{{ _running_configs.stdout_lines | map('trim') | list }}"
+    running_configs_: "{{ _running_configs.stdout }}"
 
-- name: intent routing configs
+- name: routing intent configs
   set_fact:
-    intent_configs_r: |
+    intent_configs: |
       {# Default routing commands #}
       net add routing defaults datacenter
       net add routing service integrated-vtysh-config
@@ -18,56 +19,34 @@
       {# Loopback routes #}
       net add routing route-map LOOPBACK_ROUTES permit 10 match interface lo
 
-- name: net del
-  block:
-  - name: del routing config list
-    set_fact:
-      del_configs_r: |
-        {%  set nclu = [] %}
-        {%  set _intent_configs_r = intent_configs_r.split('\n') %}
-        {%  for item in running_configs_r if item not in _intent_configs_r %}
-        {%    set _item = item.replace('add ', 'del ').replace('net', '').strip() %}
-        {%    do nclu.append(_item | regex_search('\w+\s+.*\d+')) %}
-        {%  endfor %}
-        {{ nclu }}
-  - name: deleting routing configs
-    nclu:
-      template: |
-        {% for item in del_configs_r %}
-        {{ item }}
-        {% endfor %}
-      atomic: true
-    register: net_del_r
-    when: del_configs_r | length > 0
-  - name: show commit last
-    nclu:
-      commands:
-        - show commit last
-    when: net_del_r['changed']
-  when: running_configs_r | length > 0
-
-- name: net add
-  block:
-  - name: add routing config list
-    set_fact:
-      add_configs_r: |
-        {%  set nclu = [] %}
-        {%  set _intent_configs_r = intent_configs_r.split('\n') %}
-        {%  for item in _intent_configs_r if item not in running_configs_r and item.startswith('net') %}
-        {%    do nclu.append(item.replace('net', '').strip()) %}
-        {%  endfor %}
-        {{ nclu }}
-  - name: adding routing configs
-    nclu:
-      template: |
-        {% for item in add_configs_r %}
-        {{ item }}
-        {% endfor %}
-      atomic: true
-    register: net_add_r
-    when: add_configs_r | length > 0
-  - name: show commit last
-    nclu:
-      commands:
-        - show commit last
-    when: net_add_r['changed']
+- name: net del/add routing
+  nclu:
+    template: |
+      {%  set nclu = [] %}
+      {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
+      {%  for item_del in running_configs if item_del not in _intent_configs %}
+      {%      set _item_del_permit = item_del.replace('net add', 'del') | regex_search('\w+.*(?:permit|deny)\s\d+') %}
+      {%      set _item_del_name = item_del.replace('net add ', 'del')| regex_search('\w+.*route-map\s\S+') %}
+      {%      set name = item_del | regex_search('(?<=route-map\s)(\S+)') %}
+      {%          if name is not none %}
+      {%              set x = running_configs_ | regex_findall(name | default(none)) %}
+      {%                  if x | length > 1 %}
+      {%                      do nclu.append(_item_del_permit) %}
+      {%                  else %}
+      {%                      do nclu.append(_item_del_name) %}
+      {%                  endif %}
+      {%          endif %}
+      {%  endfor %}
+      {%  for item_add in _intent_configs if item_add not in running_configs %}
+      {%      set _item_add = item_add.replace('net add', 'add') %}
+      {%      do nclu.append(_item_add) %}{% endfor %}
+      {%  for item in nclu %}
+      {{ item }}
+      {%  endfor %}
+    abort: true
+  register: nclu
+- name: commit changes
+  nclu:
+    commands:
+      - commit
+  when: nclu['changed']

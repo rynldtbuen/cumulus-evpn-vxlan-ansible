@@ -38,6 +38,7 @@
         {%  for item in nclu %}
         {{ item }}
         {%  endfor %}
+      atomic: true
     register: nclu
   - name: commit changes (1)
     nclu:
@@ -46,8 +47,7 @@
     when: nclu['changed']
   when: inventory_hostname in mlag.keys()
 
-- name: net add bonds
-  block:
+- block:
   - name: net show interface bonds json (2)
     nclu:
       commands:
@@ -80,6 +80,7 @@
         {%  for item in nclu %}
         {{ item }}
         {%  endfor %}
+      abort: true
     register: nclu
   - name: commit changes (2)
     nclu:
