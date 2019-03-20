@@ -197,11 +197,15 @@ class CheckVars:
         duplicate_vids = self.utils.duplicate_items(vids)
         if len(duplicate_vids) > 0:
             try:
-                tenant, vid = self._get_tenant(duplicate_vids[0],
-                                               existing_vlans)
-                m = ("VLAN{} is already assign to tenant \"{}\", "
-                     "or has a duplicate entry. Plese check "
-                     "your 'vlans' variable in 'master.yml'")
+                tenant, vid = (
+                    self._get_tenant(
+                        duplicate_vids[0], existing_vlans)
+                        )
+                m = (
+                    "VLAN{} is already assign to tenant \"{}\", "
+                    "or has a duplicate entry. Plese check "
+                    "your 'vlans' variable in 'master.yml'"
+                    )
                 raise Exception(m.format(vid, tenant))
             except TypeError:
                 m = "VLAN{} is found duplicate."
@@ -225,29 +229,42 @@ class CheckVars:
                 bond_tenant = self.utils.unique(
                     [vlans[vid]['tenant'] for vid in vids])
                 if len(bond_tenant) > 1:
-                    m = ("Bond '{}' assigned vids belongs to multiple tenants. "
-                         "Check your 'mlag_bonds' variable in 'master.yml'.")
+                    m = (
+                        "Bond '{}' assigned vids belongs to multiple tenants. "
+                        "Check your 'mlag_bonds' variable in 'master.yml'."
+                        )
                     raise Exception(
-                        m.format(bond['name']))
+                        m.format(bond['name'])
+                        )
 
-            bond_members = self.utils.cluster_to_range(
-                [item['members'] for item in value])
+            bond_members = (
+                self.utils.cluster_to_range(
+                    [item['members'] for item in value])
+                    )
             dup_member = self.utils.duplicate_items(bond_members)
             if len(dup_member) > 0:
-                m = ("Port '{}'({}) is already assigned or has a duplicate entry. "
-                     "Check your 'mlag_bonds' variable in 'master.yml'.")
+                m = (
+                    "Port '{}'({}) is already assigned or "
+                    "has a duplicate entry. Check your "
+                    "'mlag_bonds' variable in 'master.yml'."
+                    )
                 raise Exception(m.format(dup_member[0], rack))
 
             bonds = [item['name'] for item in value]
             dup_bonds = self.utils.duplicate_items(bonds)
             if len(dup_bonds) > 0:
-                m = ("Bond '{}'({}) was already assigned or has a duplicate entry. "
-                     "Check your 'mlag_bonds' variable in 'master.yml'.")
+                m = (
+                    "Bond '{}'({}) was already assigned or "
+                    "has a duplicate entry. Check your "
+                    "'mlag_bonds' variable in 'master.yml'."
+                    )
                 raise Exception(m.format(dup_bonds[0], rack))
 
     def reserved_subnets(self, subnets):
-        reserved_subnets = {'172.16.0.0/14': 'VLANs',
-                            '172.20.0.0/24': 'External Connectivity'}
+        reserved_subnets = {
+            '172.16.0.0/14': 'VLANs',
+            '172.20.0.0/24': 'External Connectivity'
+            }
 
         # _subnets = [IPv4Network(subnet) for name, subnet in subnets]
         r_subnets = [IPv4Network(item) for item in reserved_subnets.keys()]
@@ -256,12 +273,15 @@ class CheckVars:
                 subnet_ = IPv4Network(_subnet)
                 for r_subnet in r_subnets:
                     if subnet_.overlaps(r_subnet):
-                        m = ("Subnet {} overlaps with {} "
-                             "reserved subnet {}.\n"
-                             "Check your '{}' variable in 'master.yml'.")
+                        m = (
+                            "Subnet {} overlaps with {} reserved subnet {}.\n"
+                            "Check your '{}' variable in 'master.yml'."
+                            )
                         raise Exception(m.format(
-                            subnet_, reserved_subnets[str(r_subnet)],
-                            r_subnet, name))
+                            subnet_,
+                            reserved_subnets[str(r_subnet)],
+                            r_subnet, name)
+                            )
 
     def subnets(self, new_subnets, existing_subnets=None, vlans=None):
 
@@ -280,143 +300,14 @@ class CheckVars:
             invalid_subnets.append(ns)
 
         if len(invalid_subnets) > 0:
-            m = ("Invalid network: {}, is an "
-                 "IP address that belong to {} network.\n"
-                 "Check your '{}' variable in 'master.yml'")
-            raise ValueError(m.format(
-                    ns, IPv4Network(ns, strict=False), name)
-            )
-
-        # if existing_subnets is not None:
-        #     _existing_subnets = [IPv4Network(es['subnet'])
-        #                          for _, es in existing_subnets.items()]
-        #     if _new_subnets[0] in _existing_subnets:
-        #         tenant, vlan = _get_tenant_vid(new_subnets)
-        #         m = "Subnet {} is alreay assigned to VLAN{}({})."
-        #         raise Exception(m.format(_new_subnets, vlan, tenant))
-        #
-        #     for es in _existing_subnets:
-        #         if _new_subnets[0].overlaps(es):
-        #             tenant, vlan = _get_tenant_vid(str(es))
-        #             m = ("Subnet {} overlaps with existing subnet {}(VLAN{}).")
-        #             raise Exception(m.format(_new_subnets[0], es, vlan))
-        # else:
-        #     x_subnets = combinations(_new_subnets, 2)
-        #     for subnet in x_subnets:
-        #         a, b = subnet
-        #         if a.overlaps(b):
-        #             m = "Overlapping subnets: ({}, {})."
-        #             raise Exception(
-        #                 m.format(str(a), str(b))
-        #             )
-
-            #    if _new_subnets in _existing_subnets:
-            #         tenant, vlan = _get_tenant_vid(new_subnets)
-            #         m = "Subnet {} is alreay assigned to VLAN{}({})."
-            #         raise Exception(m.format(_new_subnets, vlan, tenant))
-            #
-            #     for item in _existing_subnets:
-            #         if _new_subnets.overlaps(item):
-            #             tenant, vlan = _get_tenant_vid(str(item))
-            #             m = ("Subnet {} overlaps with existing subnet {}(VLAN{}).")
-            #             raise Exception(m.format(_new_subnets, item, vlan))
-            # except ValueError:
-            #     m = ("Invalid network: {}, it is an "
-            #          "IP address that belong to {} network.")
-            #     raise Exception(m.format(
-            #             new_subnets, IPv4Network(new_subnets, strict=False))
-            #     )
-        # if isinstance(new_subnets, str):
-        #     try:
-        #         _existing_subnets = [
-        #             IPv4Network(es['subnet'])
-        #             for _, es in existing_subnets.items()]
-        #         _new_subnets = IPv4Network(new_subnets)
-        #
-        #         if _new_subnets in _existing_subnets:
-        #             tenant, vlan = _get_tenant_vid(new_subnets)
-        #             m = "Subnet {} is alreay assigned to VLAN{}({})."
-        #             raise Exception(m.format(_new_subnets, vlan, tenant))
-        #
-        #         for item in _existing_subnets:
-        #             if _new_subnets.overlaps(item):
-        #                 tenant, vlan = _get_tenant_vid(str(item))
-        #                 m = ("Subnet {} overlaps with existing subnet {}(VLAN{}).")
-        #                 raise Exception(m.format(_new_subnets, item, vlan))
-        #     except ValueError:
-        #         m = ("Invalid network: {}, it is an "
-        #              "IP address that belong to {} network.")
-        #         raise Exception(m.format(
-        #                 new_subnets, IPv4Network(new_subnets, strict=False))
-        #         )
-        # else:
-        #     try:
-        #         _new_subnets = []
-        #         for item in new_subnets:
-        #             _new_subnets.append(IPv4Network(item))
-        #
-        #         x_subnets = combinations(_new_subnets, 2)
-        #         for subnet in x_subnets:
-        #             a, b = subnet
-        #             if a.overlaps(b):
-        #                 m = "Overlapping subnets: ({}, {})."
-        #                 raise Exception(
-        #                     m.format(str(a), str(b))
-        #                 )
-        #     except ValueError:
-        #         m = ("Invalid network: {}, it is an "
-        #              "IP address that belong to {} network.")
-        #         raise Exception(
-        #             m.format(item, IPv4Network(item, strict=False))
-        #         )
-        # for es in _existing_subnets:
-        #     if _new_subnets in
-        # _new_subnets = []
-        # for subnet in new_subnets:
-        #     try:
-        #         _new_subnets.append(IPv4Network(subnet))
-        #     except ValueError:
-        #         m = ("Invalid network: {}{}, it is an "
-        #              "IP address that belong to {} network.")
-        #         raise Exception(
-        #             m.format(
-        #                 subnet, _get_vid(subnet, 'vlans'), IPv4Network(
-        #                     subnet, strict=False)))
-        #
-        # x_subnets = combinations(_new_subnets, 2)
-        # for subnet in x_subnets:
-        #     if subnet[0] == subnet[1]:
-        #         m = ("Duplicate subnet: {}. "
-        #              "Check your 'vlans' variable in 'master.yml'")
-        #         raise Exception(m.format(subnet[0]))
-        #
-        #     if subnet[0].overlaps(subnet[1]):
-        #         m = ("Subnets {}{} overlaps with subnet {}{}. "
-        #              "Check your 'vlans' variable in 'master.yml'")
-        #         value0 = _get_vid(str(subnet[0]), 'vlans')
-        #         value1 = _get_vid(str(subnet[1]), 'vlans')
-        #         raise Exception(
-        #             m.format(subnet[0], value0,
-        #                      subnet[1], value1))
-        #
-        # _existing_subnets = [IPv4Network(es['subnet'])
-        #                      for _, es in existing_subnets.items()]
-        # y_subnets = [(ns, es)
-        #              for ns in _new_subnets for es in _existing_subnets]
-        # for subnet in y_subnets:
-        #     if subnet[0] == subnet[1]:
-        #         m = "Subnet {}{} was already assigned to {}"
-        #         value0 = _get_vid(str(subnet[0]), 'vlans')
-        #         value1 = _get_vid(str(subnet[1]), 'existing_subnets')
-        #         raise Exception(m.format(subnet[0], value0, value1))
-
-        # if subnet[0].overlaps(subnet[1]):
-        #     m = ("Subnet {}{} overlaps with existing subnet {}{}. "
-        #          "Check your 'vlans' variable in 'master.yml'")
-        #     value0 = _get_vid(str(subnet[0]), 'vlans')
-        #     value1 = _get_vid(str(subnet[1]), 'existing_subnets')
-        #     raise Exception(m.format(subnet[0], value0,
-        #                              subnet[1], value1))
+            m = (
+                "Invalid network: {}, is an "
+                "IP address that belong to {} network.\n"
+                "Check your '{}' variable in 'master.yml'"
+                )
+            raise ValueError(
+                m.format(ns, IPv4Network(ns, strict=False), name)
+                )
 
     def links(self, links):
         for name, group in links.items():
@@ -434,17 +325,19 @@ class CheckVars:
                             item['in_item']
                             for item in value if dup_iface[0] == item['iface']]
                     except KeyError:
-                        in_item = [
-                            item['in_item']
-                            for item in value if dup_iface[0] in item['iface_range']]
-
-                    m = ("Overlapping interface: '{}' "
-                         "in '{}'. Check your 'master.yml' "
-                         "and the errors below.\n{}")
+                        in_item = (
+                            [item['in_item'] for item in value
+                                if dup_iface[0] in item['iface_range']]
+                            )
+                    m = (
+                        "Overlapping interface: '{}' "
+                        "in '{}'. Check your 'master.yml' "
+                        "and the errors below.\n{}"
+                        )
                     raise ValueError(m.format(
-                        dup_iface[0], _group, json.dumps(
-                            {name: in_item}, indent=2)
-                        ))
+                        dup_iface[0],
+                        _group, json.dumps({name: in_item}, indent=2))
+                        )
 
     def interfaces_list(self, interfaces_list):
         for host, v in interfaces_list.items():
@@ -452,6 +345,8 @@ class CheckVars:
             for a, b in y:
                 for intf in v[a]:
                     if intf in v[b]:
-                        m = ("Overlapping interface: {} in {}. "
-                             "Check your \"{}\" and \"{}\" variable in \"master.yml\".")
+                        m = (
+                            "Overlapping interface: {} in {}. Check your "
+                            "\"{}\" and \"{}\" variable in \"master.yml\"."
+                            )
                         raise Exception(m.format(intf, host, a, b))

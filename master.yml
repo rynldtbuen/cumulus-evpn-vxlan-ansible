@@ -67,7 +67,7 @@ mlag_peerlink_interface: 'swp23-24'
 mlag_bonds:
   rack01:
     - { name: server01, members: 'swp1', vids: '100' }
-    # - { name: server02, members: 'swp2', vids: '500-502' }
+    - { name: server02, members: 'swp2', vids: '101' }
     # - { name: server03, members: 'swp3', vids: '500-502' }
     # - { name: server04, members: 'swp4', vids: '100-103' }
   rack02:

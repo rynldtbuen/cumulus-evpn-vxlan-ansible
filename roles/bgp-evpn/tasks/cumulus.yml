@@ -53,7 +53,11 @@
       {%  for vrf, v in  bgp[inventory_hostname].items() if vrf != 'global' %}
       net add bgp vrf {{ vrf }} autonomous-system {{ v['as'] }}
       net add bgp vrf {{ vrf }} router-id {{ v['router_id'] }}
-      net add bgp vrf {{ vrf }} ipv4 unicast network 172.16.2.0/24
+      net add bgp vrf {{ vrf }} ipv4 unicast network 10.128.0.0/16
+      {%  set vlans_subnet = ('_vlans_subnet' | get_config).values() | map(attribute='subnet') | list %}
+      {%  for item in vlans_subnet %}
+      net add bgp vrf {{ vrf }} ipv4 unicast network {{ item }}
+      {%  endfor %}
       {%      for item in v['neighbors'] %}
       net add bgp vrf {{ vrf }} neighbor {{ item['neighbor'] }} remote-as {{ item['as'] }}
       {%      endfor %}
@@ -66,10 +70,10 @@
         {%  set nclu = [] %}
         {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
         {%  for item_del in running_configs if item_del not in _intent_configs %}
-        {%      set _item_del = item_del.replace('net add ', 'del') %}
+        {%      set _item_del = item_del.replace('net add', 'del') %}
         {%      do nclu.append(_item_del) %}{% endfor %}
         {%  for item_add in _intent_configs if item_add not in running_configs %}
-        {%      set _item_add = item_add.replace('net add ', 'add') %}
+        {%      set _item_add = item_add.replace('net add', 'add') %}
         {%      do nclu.append(_item_add) %}{% endfor %}
         {%  for item in nclu %}
         {{ item }}

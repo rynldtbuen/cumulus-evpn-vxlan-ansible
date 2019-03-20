@@ -86,68 +86,89 @@ class GetConfigVars:
                 )
 
     def loopback(self):
-        base_subnet = self.utils.load_masterfile(
-            'loopback_ipv4_base_subnet')
-        clag_vxlan_anycast_base_subnet = self.utils.load_masterfile(
-            'mlag_vxlan_anycast_base_subnet')
+        base_subnet = (
+            self.utils.load_masterfile('loopback_ipv4_base_subnet')
+            )
+        clag_vxlan_anycast_base_subnet = (
+            self.utils.load_masterfile('mlag_vxlan_anycast_base_subnet')
+            )
+        loopback_subnets = (
+            list(base_subnet.values()) + [clag_vxlan_anycast_base_subnet]
+            )
 
-        lo_subnets = list(base_subnet.values()) + \
-            [clag_vxlan_anycast_base_subnet]
-        self.chk.subnets({'loopback_ipv4_base_subnet': lo_subnets})
-        self.chk.reserved_subnets({'loopback_ipv4_base_subnet': lo_subnets})
-        lo = {}
+        self.chk.subnets(
+            {'loopback_ipv4_base_subnet': loopback_subnets}
+            )
+        self.chk.reserved_subnets(
+            {'loopback_ipv4_base_subnet': loopback_subnets}
+            )
+
+        _loopback = {}
         for group, subnet in base_subnet.items():
             for host in self._groups(group):
-                lo[host] = {
-                    'ip_addresses': [], 'clag_vxlan_anycast_ip': None}
+                _loopback[host] = {
+                    'ip_addresses': [], 'clag_vxlan_anycast_ip': None
+                    }
 
                 rack_id = self._rack_id(host)
                 host_id = self._host_id(host)
                 lo_ip = self.utils.get_ip(subnet, host_id, 'loopback')
 
-                lo[host]['ip_addresses'].append(lo_ip)
+                _loopback[host]['ip_addresses'].append(lo_ip)
 
                 if host in self._groups('leaf'):
                     vxlan_anycast_ip = self.utils.get_ip(
                         clag_vxlan_anycast_base_subnet, rack_id, 'address')
 
-                    lo[host]['clag_vxlan_anycast_ip'] = vxlan_anycast_ip
-                    # lo[host]['allentries'].append(vxlan_anycast_ip)
+                    _loopback[host]['clag_vxlan_anycast_ip'] = vxlan_anycast_ip
 
-        return self.utils.default_to_dict(lo)
+        return self.utils.default_to_dict(_loopback)
 
     def _vlans(self):
         vlans = self.utils.load_masterfile('vlans')
         existing_vlans = self.utils.load_datafile('vlans')
 
-        self.chk.vlans(existing_vlans,
-                       [item for k, v in vlans.items() for item in v])
+        self.chk.vlans(
+            existing_vlans, [item for k, v in vlans.items() for item in v]
+            )
 
         def _transport_vni():
-            vids = self.utils.difference(range(4000, 4091), [
-                                int(id) for id, value in existing_vlans.items()
-                                if value['name'] == 'transport_vni'])
+            vids = (
+                self.utils.difference(range(4000, 4091), [
+                    int(id) for id, value in existing_vlans.items()
+                    if value['name'] == 'transport_vni'])
+                )
             for id in vids:
                 yield str(id)
 
         vni = _transport_vni()
 
-        tenants = [value['tenant'] for vid, value in existing_vlans.items()
-                   if value['name'] == 'transport_vni']
+        tenants = (
+            [value['tenant'] for vid, value in existing_vlans.items()
+                if value['name'] == 'transport_vni']
+            )
 
         _vlans = {}
         for tenant, value in vlans.items():
             for vlan in value:
                 _vlans[vlan['id']] = {
-                    'tenant': tenant, 'name': vlan['name'], 'type': 'l2'}
+                    'tenant': tenant, 'name': vlan['name'], 'type': 'l2'
+                    }
             if tenant not in tenants:
                 _vlans[next(vni)] = {
-                    'tenant': tenant, 'name': 'transport_vni', 'type': 'l3'}
+                    'tenant': tenant, 'name': 'transport_vni', 'type': 'l3'
+                    }
 
         for vid, value in existing_vlans.items():
             if (value['name'] == 'transport_vni'
                     and value['tenant'] in vlans.keys()):
                 _vlans[vid] = value
+
+        # # Add public vlan
+        # _vlans['2'] = {
+        #     'name': 'public vlan',
+        #     'subnet': '10.128.0.0/16'
+        # }
 
         return self.utils.dump_datafile('vlans', _vlans)
 
@@ -168,9 +189,9 @@ class GetConfigVars:
             for index, item in enumerate(mlag[rack], start=1):
                 try:
                     if item['name'] not in clag_interface[rack].keys():
-                        clag_interface[rack].update({
-                            item['name']: available_ids[loop]
-                            })
+                        clag_interface[rack].update(
+                            {item['name']: available_ids[loop]}
+                            )
                         loop += 1
                 except KeyError:
                     clag_interface[rack] = {
@@ -199,31 +220,36 @@ class GetConfigVars:
             host_id = self._host_id(host)
             rack_id = self._rack_id(host)
             loopback_ipv4_address = self._loopback_ipv4_address(host)
-            system_mac = self.utils.mac_address(
-                '44:38:39:FF:01:00', -(rack_id)
+            system_mac = (
+                self.utils.mac_address('44:38:39:FF:01:00', -(rack_id))
                 )
 
             if host_id % 2 == 0:
                 clag_role = '2000'
-                backup_ip = self.utils.get_address(
-                            loopback_ipv4_address, -1)
+                backup_ip = (
+                    self.utils.get_address(loopback_ipv4_address, -1)
+                    )
                 peer_ip = '169.254.1.1'
                 ip = '169.254.1.2/30'
             else:
                 clag_role = '1000'
-                backup_ip = self.utils.get_address(
-                    loopback_ipv4_address, +1)
+                backup_ip = (
+                    self.utils.get_address(loopback_ipv4_address, +1)
+                    )
                 peer_ip = '169.254.1.2'
                 ip = '169.254.1.1/30'
 
             peerlink_interface = sorted(self.utils.unique(
-                self.utils.cluster_to_range(mlag_peerlink_interface)))
+                self.utils.cluster_to_range(mlag_peerlink_interface))
+                )
 
-            clag[host] = {'priority': clag_role, 'system_mac': system_mac,
-                          'interface': ",".join(peerlink_interface),
-                          'backup_ip': backup_ip,
-                          'peer_ip': peer_ip, 'ip': ip
-                          }
+            clag[host] = {
+                'priority': clag_role,
+                'system_mac': system_mac,
+                'interface': ",".join(peerlink_interface),
+                'backup_ip': backup_ip,
+                'peer_ip': peer_ip, 'ip': ip
+                }
 
         return clag
 
@@ -262,6 +288,7 @@ class GetConfigVars:
 
         _bonds = self.utils.default_to_dict(bonds)
         _mlag = defaultdict(lambda: defaultdict(dict))
+
         for host in self._groups('leaf'):
             rack_name = self._rack_id(host, 'name')
             if rack_name in _bonds:
@@ -275,22 +302,25 @@ class GetConfigVars:
         vlans_subnet = self.utils.load_datafile('vlans_subnet')
         _vlans = self._vlans()
 
-        defined_subnets = [
-            item for k, v in vlans.items() for item in v if 'subnet' in item]
+        defined_subnets = (
+            [item for k, v in vlans.items() for item in v if 'subnet' in item]
+            )
 
         # Check defined subnets not overlaps or duplicate in existing subnets
         for item in defined_subnets:
             if (item['id'] in vlans_subnet.keys()
                     and item['subnet'] != vlans_subnet[item['id']]['subnet']):
-                print(self.chk.subnets(
-                    {'vlans': [item['subnet']]}, vlans_subnet, _vlans))
+                self.chk.subnets(
+                    {'vlans': [item['subnet']]}, vlans_subnet, _vlans)
                 vlans_subnet[item['id']]['subnet'] = item['subnet']
 
             if item['id'] not in vlans_subnet.keys():
-                print(self.chk.subnets(
-                    {'vlans': [item['subnet']]}, vlans_subnet, _vlans))
-                vlans_subnet[item['id']] = {'subnet': item['subnet'],
-                                            'allocation': 'manual'}
+                self.chk.subnets(
+                    {'vlans': [item['subnet']]}, vlans_subnet, _vlans)
+                vlans_subnet[item['id']] = (
+                    {'subnet': item['subnet'],
+                     'allocation': 'manual'}
+                    )
 
         base_net_prefix = '172.16.0.0/14'
         existing_subnets = [v['subnet'] for k, v in vlans_subnet.items()]
@@ -299,25 +329,28 @@ class GetConfigVars:
             item for k, v in vlans.items()
             for item in v if 'subnet_size' in item]
 
-        sorted_subnet_size = sorted(defined_subnet_size,
-                                    key=itemgetter('subnet_size'))
+        sorted_subnet_size = (
+            sorted(defined_subnet_size, key=itemgetter('subnet_size'))
+            )
 
         for item in sorted_subnet_size:
             subnet = self.utils.get_subnet(
                 base_net_prefix, existing_subnets, item['subnet_size'])
 
             if item['id'] not in vlans_subnet.keys():
-                vlans_subnet[item['id']] = {'subnet': next(subnet),
-                                            'allocation': 'auto_subnet_size',
-                                            'size': int(item['subnet_size'])
-                                            }
+                vlans_subnet[item['id']] = {
+                    'subnet': next(subnet),
+                    'allocation': 'auto_subnet_size',
+                    'size': int(item['subnet_size'])
+                    }
+
             if (item['id'] in vlans_subnet.keys()
                 and vlans_subnet[item['id']]['allocation'] != 'auto_subnet_size'
                     or vlans_subnet[item['id']]['size'] != int(item['subnet_size'])):
-                vlans_subnet[item['id']].update(
-                    {'subnet': next(subnet),
-                     'allocation': 'auto_subnet_size',
-                     'size': int(item['subnet_size'])
+                vlans_subnet[item['id']].update({
+                    'subnet': next(subnet),
+                    'allocation': 'auto_subnet_size',
+                    'size': int(item['subnet_size'])
                      })
 
         subnet = self.utils.get_subnet(
@@ -330,20 +363,23 @@ class GetConfigVars:
         try:
             for item in undefined_subnet:
                 if item['id'] not in vlans_subnet.keys():
-                    vlans_subnet[item['id']] = {'subnet': next(subnet),
-                                                'allocation': 'auto_subnet'}
+                    vlans_subnet[item['id']] = {
+                        'subnet': next(subnet),
+                        'allocation': 'auto_subnet'
+                        }
                 if (item['id'] in vlans_subnet.keys()
                         and vlans_subnet[item['id']]['allocation'] != 'auto_subnet'):
-                    vlans_subnet[item['id']].update(
-                        {'subnet': next(subnet),
-                         'allocation': 'auto_subnet'
+                    vlans_subnet[item['id']].update({
+                        'subnet': next(subnet),
+                        'allocation': 'auto_subnet'
                          })
         except StopIteration:
             raise Exception('Run out of subnets.')
 
         for vid in vlans_subnet.copy().keys():
-            if vid not in [item['id'] for _, v in vlans.items()
-                           for item in v]:
+            if vid not in (
+                    [item['id'] for _, v in vlans.items() for item in v]
+                    ):
                 vlans_subnet.pop(vid)
 
         return self.utils.dump_datafile('vlans_subnet', vlans_subnet)
@@ -384,8 +420,9 @@ class GetConfigVars:
         vxlan = defaultdict(lambda: defaultdict(list))
         for host in host_vlans:
             # host_id = self._host_id(host)
-            vxlan[host]['local_tunnelip'] = self.utils.get_address(
-                self._loopback_ipv4_address(host))
+            vxlan[host]['local_tunnelip'] = (
+                self.utils.get_address(self._loopback_ipv4_address(host))
+                )
             for vid, value in host_vlans[host].items():
                 name = "{}{}".format(base_name, vid)
                 vxlan[host]['vxlan'].append({
@@ -407,29 +444,37 @@ class GetConfigVars:
             if host in self._groups('leaf'):
                 host_id = self._host_id(host)
                 rack_id = self._rack_id(host)
+
                 for vid, value in vids.items():
                     if value['type'] == 'l2':
-                        virtual_mac = self.utils.mac_address(
-                            '44:38:39:FF:01:00', vid)
-                        virtual_address = self.utils.get_ip(
-                            vlan_subnets[vid]['subnet'], -2)
-                        ip_index = -3 if host_id % 2 == 0 else -4
-                        address = self.utils.get_ip(
-                            vlan_subnets[vid]['subnet'], ip_index)
-
-                        svi[host][vid] = {'virtual_mac': virtual_mac,
-                                          'virtual_address': virtual_address,
-                                          'address': address,
-                                          'tenant': value['tenant'],
-                                          'type': value['type']
-                                          }
+                        virtual_mac = (
+                            self.utils.mac_address('44:38:39:FF:01:00', vid)
+                            )
+                        virtual_address = (
+                            self.utils.get_ip(vlan_subnets[vid]['subnet'], -2)
+                            )
+                        address = (
+                            self.utils.get_ip(
+                                vlan_subnets[vid]['subnet'], -(int(host_id + 2)
+                                                               ))
+                            )
+                        svi[host][vid] = {
+                            'virtual_mac': virtual_mac,
+                            'virtual_address': virtual_address,
+                            'address': address,
+                            'tenant': value['tenant'],
+                            'type': value['type']
+                            }
                     if value['type'] == 'l3':
-                        router_mac = self.utils.mac_address(
-                            '44:39:39:FF:FF:FF', -(rack_id))
-                        svi[host][vid] = {'tenant': value['tenant'],
-                                          'router_mac': router_mac,
-                                          'type': value['type']
-                                          }
+                        router_mac = (
+                            self.utils.mac_address(
+                                '44:39:39:FF:FF:FF', -(rack_id))
+                                )
+                        svi[host][vid] = {
+                            'tenant': value['tenant'],
+                            'router_mac': router_mac,
+                            'type': value['type']
+                            }
             else:
                 svi[host] = vids
 
@@ -440,13 +485,16 @@ class GetConfigVars:
         for name, links in links.items():
             links_list = defaultdict(list)
             for link in links:
-                links_perm = permutations(
-                    [item.strip() for item in link.split('--')]
+                links_perm = (
+                    permutations([item.strip() for item in link.split('--')])
                     )
                 for item in links_perm:
-                    links_ = tuple(
-                        [y for x in item for y in x.split(':')])
+                    links_ = (
+                        tuple([y for x in item for y in x.split(':')])
+                        )
+
                     grp, iface, nei_grp, nei_iface = links_
+
                     try:
                         hosts = sorted(self._groups(grp))
                         nei_hosts = sorted(self._groups(nei_grp))
@@ -454,25 +502,38 @@ class GetConfigVars:
                         num_of_nei = len(nei_hosts)
 
                         iface_id = self.utils.interface(iface)
-                        iface_range = self.utils.cluster_to_range(
-                            "{}-{}".format(iface, iface_id + num_of_nei - 1))
+                        _iface_range = (
+                            "{}-{}".format(iface, iface_id + num_of_nei - 1)
+                            )
+                        iface_range = self.utils.cluster_to_range(_iface_range)
 
                         nei_iface_id = self.utils.interface(nei_iface)
-                        nei_iface_range = self.utils.cluster_to_range(
-                            "{}-{}".format(nei_iface, nei_iface_id + num_of_hosts - 1))
+                        _nei_iface_range = (
+                            "{}-{}".format(
+                                nei_iface, nei_iface_id + num_of_hosts - 1)
+                                )
+                        nei_iface_range = (
+                            self.utils.cluster_to_range(_nei_iface_range)
+                            )
 
                         if grp == link.split(':')[0]:
-                            in_item = "{}:{} -- {}:{}".format(
-                                grp, self.utils.range_to_cluster(iface_range),
-                                nei_grp, self.utils.range_to_cluster(
-                                    nei_iface_range)
-                            )
+                            in_item = (
+                                "{}:{} -- {}:{}".format(
+                                    grp,
+                                    self.utils.range_to_cluster(iface_range),
+                                    nei_grp,
+                                    self.utils.range_to_cluster(nei_iface_range)
+                                    )
+                                )
                         else:
-                            in_item = "{}:{} -- {}:{}".format(
-                                nei_grp, self.utils.range_to_cluster(
-                                    nei_iface_range),
-                                grp, self.utils.range_to_cluster(iface_range)
-                            )
+                            in_item = (
+                                "{}:{} -- {}:{}".format(
+                                    nei_grp,
+                                    self.utils.range_to_cluster(nei_iface_range),
+                                    grp,
+                                    self.utils.range_to_cluster(iface_range)
+                                    )
+                                )
 
                         links_list[grp].append({
                             'hosts': hosts,
@@ -483,16 +544,18 @@ class GetConfigVars:
                             'num_of_hosts': num_of_hosts,
                             'num_of_nei': num_of_nei,
                             'in_item': in_item
-                        })
+                            })
                     except KeyError:
                         if grp == link.split(':')[0]:
-                            in_item = "{}:{} -- {}:{}".format(
-                                grp, iface, nei_grp, nei_iface
-                            )
+                            in_item = (
+                                "{}:{} -- {}:{}".format(
+                                    grp, iface, nei_grp, nei_iface)
+                                )
                         else:
-                            in_item = "{}:{} -- {}:{}".format(
-                                nei_grp, nei_iface, grp, iface
-                            )
+                            in_item = (
+                                "{}:{} -- {}:{}".format(
+                                    nei_grp, nei_iface, grp, iface)
+                                )
                         links_list[grp].append({
                             'iface': iface,
                             'link_to': nei_grp,
@@ -510,9 +573,6 @@ class GetConfigVars:
         links = self._links(fabric)
         interfaces_unnum = defaultdict(dict)
         for _, v in links['fabric'].items():
-            # iface = self.utils.range_to_cluster(
-            #         [x for item in value for x in item['iface_range']]
-            #         )
             for item in v:
                 for index, host in enumerate(item['hosts']):
                     for r in range(item['num_of_nei']):
@@ -622,10 +682,6 @@ class GetConfigVars:
                 common[host] = {'asn': _asn, 'router_id': router_id}
 
         for host in intf_unnum:
-            # peer_groups = self.utils.unique([
-            #     v['peer_group'] for intf, v in intf_unnum[host].items()
-            #     ])
-            # bgp_neighbors[host]['global']['peer_groups'] = peer_groups
             _bgp_neighbors = bgp_neighbors[host]['global']
             _bgp_neighbors['router_id'] = common[host]['router_id']
             _bgp_neighbors['as'] = common[host]['asn']
@@ -638,14 +694,6 @@ class GetConfigVars:
                     'host': v['remote_host'],
                     'id': common[v['remote_host']]['router_id']
                 })
-                # bgp_neighbors[host]['global']['router_id'] = common[host]['router_id']
-                # bgp_neighbors[host]['global']['as_number'] = common[host]['asn']
-                # bgp_neighbors[host]['global']['neighbors'][intf] = {
-                #     'remote_as': 'external',
-                #     'peer_group': v['peer_group'],
-                #     'remote_id': common[v['remote_host']]['router_id'],
-                #     'remote_peer': v['remote_host']
-                #     }
 
         for host in intf_ip:
             for intf, v in intf_ip[host].items():
@@ -658,15 +706,7 @@ class GetConfigVars:
                     'host': v['remote_host'],
                     'as': common[v['remote_host']]['asn'],
                     'id': common[v['remote_host']]['router_id'],
-                })
-                # bgp_neighbors[host][v['vrf']]['router_id'] = common[host]['router_id']
-                # bgp_neighbors[host][v['vrf']]['as_number'] = common[host]['asn']
-                # bgp_neighbors[host][v['vrf']]['neighbors'][v['remote_ipv4_address'].split('/')[0]] = {
-                #     'remote_as': common[v['remote_host']]['asn'],
-                #     'peer_group': v['remote_host'],
-                #     'remote_id': common[v['remote_host']]['router_id'],
-                #     'local_address': v['ipv4_address']
-                #     }
+                    })
 
         return self.utils.default_to_dict(bgp_neighbors)
 
@@ -730,3 +770,37 @@ class GetConfigVars:
         with open("files/ptm.dot", 'w') as f:
             f.write(output)
         return output
+
+    def nat_rules(self):
+        vlans_subnet = self._vlans_subnet()
+
+        nat_rules = self.utils.load_datafile('nat')
+
+        def nat_rule():
+            rules = self.utils.difference(range(5000, 9000), [
+                item['rule'] for item in nat_rules])
+
+            for rule in sorted(rules):
+                yield rule
+
+        rule = nat_rule()
+
+        for k, v in vlans_subnet.items():
+            if v['subnet'] not in [
+                    item['source_address'] for item in nat_rules
+                    ]:
+                nat_rules.append({
+                    'name': 'vlan' + k,
+                    'rule': next(rule),
+                    'source_address': v['subnet']
+                })
+
+        for item in nat_rules.copy():
+            id = item['name'].split('vlan')[0]
+            try:
+                if vlans_subnet[id]['subnet'] != item['source_address']:
+                    nat_rules.remove(item)
+            except KeyError:
+                pass
+
+        return nat_rules

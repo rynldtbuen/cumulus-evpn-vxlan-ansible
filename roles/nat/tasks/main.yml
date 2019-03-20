@@ -1,0 +1,48 @@
+- name: generate vlan subnets
+  set_fact:
+    nat_rules: "{{ 'nat_rules' | get_config }}"
+
+- name: show configuration commands| egrep 'set nat'
+  vyos_command:
+    commands:
+        - show configuration commands| egrep 'set nat'
+  register: show
+
+- name: nat running configs
+  set_fact:
+    running_configs: "{{ show.stdout_lines | flatten | reject('equalto', '') | list  }}"
+
+- name: nat intent configs
+  set_fact:
+    intent_configs: |
+      {# Default NAT for oob-mgmt network #}
+      set nat source rule 1 outbound-interface 'eth3'
+      set nat source rule 1 source address '172.24.0.0/24'
+      set nat source rule 1 translation address 'masquerade'
+      set nat source rule 2 outbound-interface 'eth3'
+      set nat source rule 2 source address '10.128.0.0/16'
+      set nat source rule 2 translation address 'masquerade'
+      {# Add NAT rule for VLANs #}
+      {%  for item in nat_rules %}
+      set nat source rule {{ item['rule'] }} outbound-interface 'eth3'
+      set nat source rule {{ item['rule'] }} source address '{{ item['source_address'] }}'
+      set nat source rule {{ item['rule'] }} translation address 'masquerade'
+      {%  endfor %}
+
+- name: nat commands
+  set_fact:
+    commands: |
+      {%  set vyos = [] %}
+      {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
+      {%  for item_del in running_configs if item_del not in _intent_configs %}
+      {%      set _item_del = item_del.replace('set ', 'delete ') %}
+      {%      do vyos.append(_item_del | regex_search('\w+.*(?<=rule)\s+\d+')) %}{% endfor %}
+      {%  for item_add in _intent_configs if item_add not in running_configs %}
+      {%      set _item_add = item_add %}
+      {%      do vyos.append(_item_add) %}{% endfor %}
+      {{ vyos | unique }}
+
+- name: set/delete nat configs
+  vyos_config:
+    src: nat.j2
+    save: yes

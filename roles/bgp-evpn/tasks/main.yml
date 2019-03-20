@@ -1,6 +1,11 @@
-- name: generate host bgp variables
+- name: get bgp variables
   set_fact:
     bgp: "{{ 'bgp' | get_config }}"
   run_once: true
-  
+
+- name: get vlans subnet variables
+  set_fact:
+    vlans: "{{ ('_vlans_subnet' | get_config).values() | map(attribute='subnet') | list }}"
+  run_once: true
+
 - include_tasks: "{{ ansible_network_os }}.yml"

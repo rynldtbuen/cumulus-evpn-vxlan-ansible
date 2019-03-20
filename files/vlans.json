@@ -1,1 +1,1 @@
-{"100": {"tenant": "tenant01", "name": "vlan100", "type": "l2"}, "101": {"tenant": "tenant01", "name": "vlan101", "type": "l2"}, "4000": {"tenant": "tenant01", "name": "transport_vni", "type": "l3"}}
+{"100": {"tenant": "tenant01", "name": "vlan100", "type": "l2"}, "101": {"tenant": "tenant01", "name": "vlan101", "type": "l2"}, "4000": {"tenant": "tenant01", "name": "transport_vni", "type": "l3"}, "2": {"name": "public vlan", "subnet": "10.128.0.0/16"}}

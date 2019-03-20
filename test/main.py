@@ -1,5 +1,8 @@
 from cl_vx_config.core import GetConfigVars
+# from cl_vx_config.helpers import Utilities
 
+# utils = Utilities()
+#
 import json
 
 getconfigvars = GetConfigVars()
@@ -11,20 +14,18 @@ configs = [
     # 'svi',
     # 'interfaces_ip',
     # 'bgp',
-    # 'loopback',
+    'loopback',
     # 'interfaces_unnumbered',
-    'interfaces_list',
+    # 'interfaces_list',
     # '_vlans_subnet',
     # 'external_connectivity',
     # 'fabric',
     # 'mlag'
 ]
 
-print(getconfigvars.interfaces_list())
 for config in configs:
     x = getattr(getconfigvars, config)
     try:
-        # print(config)
         print(json.dumps(x(), indent=4))
     except TypeError:
         print(x())

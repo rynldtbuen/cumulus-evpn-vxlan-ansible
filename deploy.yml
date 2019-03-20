@@ -32,3 +32,4 @@
   roles:
     - { role: interfaces-ip, tags: interfaces-ip }
     - { role: bgp-evpn, tags: bgp-evpn }
+    - { role: nat, tags: nat }
