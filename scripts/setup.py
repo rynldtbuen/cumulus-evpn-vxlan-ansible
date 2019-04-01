@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='cl_vx_config',
-    version='1.0.10',
+    version='1.0.12',
     description='Generate Ansible variables to Deploy Cumulus VXLAN-EVPN',
     author='Reynold Tabuena',
     author_email='rynldtbuen@gmail.com',

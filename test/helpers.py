@@ -4,6 +4,9 @@ from collections import defaultdict
 from operator import itemgetter
 from itertools import groupby, chain, combinations
 
+from cl_vx_config.core import GetConfigVars as get_vars
+from ansible.errors import AnsibleError
+
 import yaml
 import json
 import os
@@ -201,15 +204,15 @@ class CheckVars:
                     self._get_tenant(
                         duplicate_vids[0], existing_vlans)
                         )
-                m = (
-                    "VLAN{} is already assign to tenant \"{}\", "
+                msg = (
+                    "VLAN{} is already assign to tenant '{}', "
                     "or has a duplicate entry. Plese check "
                     "your 'vlans' variable in 'master.yml'"
                     )
-                raise Exception(m.format(vid, tenant))
+                raise AnsibleError(msg.format(vid, tenant))
             except TypeError:
-                m = "VLAN{} is found duplicate."
-                raise Exception(m.format(duplicate_vids[0]))
+                msg = "VLAN{} is found duplicate."
+                raise AnsibleError(msg.format(duplicate_vids[0]))
 
     def mlag_bonds(self, vlans, mlag_bonds):
 
@@ -221,7 +224,7 @@ class CheckVars:
                 if vid not in vlans.keys():
                     m = ("VLAN{}({}) does not exist in list of VLANS. "
                          "Check your 'mlag_bonds' variable in 'master.yml'.")
-                    raise Exception(m.format(vid, rack))
+                    raise AnsibleError(m.format(vid, rack))
 
             for bond in value:
                 vids = self.utils.unique(
@@ -233,7 +236,7 @@ class CheckVars:
                         "Bond '{}' assigned vids belongs to multiple tenants. "
                         "Check your 'mlag_bonds' variable in 'master.yml'."
                         )
-                    raise Exception(
+                    raise AnsibleError(
                         m.format(bond['name'])
                         )
 
@@ -248,7 +251,7 @@ class CheckVars:
                     "has a duplicate entry. Check your "
                     "'mlag_bonds' variable in 'master.yml'."
                     )
-                raise Exception(m.format(dup_member[0], rack))
+                raise AnsibleError(m.format(dup_member[0], rack))
 
             bonds = [item['name'] for item in value]
             dup_bonds = self.utils.duplicate_items(bonds)
@@ -258,56 +261,74 @@ class CheckVars:
                     "has a duplicate entry. Check your "
                     "'mlag_bonds' variable in 'master.yml'."
                     )
-                raise Exception(m.format(dup_bonds[0], rack))
+                raise AnsibleError(m.format(dup_bonds[0], rack))
 
-    def reserved_subnets(self, subnets):
+    def _reserved_subnets(self, subnets):
         reserved_subnets = {
             '172.16.0.0/14': 'VLANs',
             '172.20.0.0/24': 'External Connectivity'
             }
 
         # _subnets = [IPv4Network(subnet) for name, subnet in subnets]
-        r_subnets = [IPv4Network(item) for item in reserved_subnets.keys()]
-        for name, subnet in subnets.items():
-            for _subnet in subnet:
-                subnet_ = IPv4Network(_subnet)
-                for r_subnet in r_subnets:
-                    if subnet_.overlaps(r_subnet):
+        rsv_subnets = [IPv4Network(item) for item in reserved_subnets.keys()]
+        for k, v in subnets.items():
+            for item in v:
+                subnet = IPv4Network(item)
+                for rsv_subnet in rsv_subnets:
+                    if subnet.overlaps(rsv_subnet):
                         m = (
-                            "Subnet {} overlaps with {} reserved subnet {}.\n"
-                            "Check your '{}' variable in 'master.yml'."
+                            "Subnet '{}' overlaps with '{}' reserved subnet "
+                            "'{}'. Check your '{}' variable in 'master.yml'."
                             )
-                        raise Exception(m.format(
-                            subnet_,
-                            reserved_subnets[str(r_subnet)],
-                            r_subnet, name)
+                        raise AnsibleError(m.format(
+                            subnet, reserved_subnets[str(rsv_subnet)],
+                            rsv_subnet, k)
                             )
 
     def subnets(self, new_subnets, existing_subnets=None, vlans=None):
 
-        def _get_tenant_vid(subnet):
-            for k, v in existing_subnets.items():
-                if v['subnet'] == subnet:
-                    return vlans[k]['tenant'], k
+        # def _get_tenant_vid(subnet):
+        #     for k, v in existing_subnets.items():
+        #         if v['subnet'] == subnet:
+        #             return vlans[k]['tenant'], k
 
-        invalid_subnets = []
-        _new_subnets = []
+        vlans_subnet = self.utils.load_datafile('vlans_subnet')
+        vlans = get_vars._vlans()
+
+        existing_vlans_subnet = [
+            IPv4Network(v['subnet']) for _, v in vlans_subnet.items()
+            ]
+
+        _new_subnets = {}
+
         try:
-            for name, v in new_subnets.items():
-                for ns in v:
-                    _new_subnets.append(IPv4Network(ns))
+            for k, v in new_subnets.items():
+                x = []
+                for item in v:
+                    x.append(IPv4Network(item))
+                _new_subnets[k] = x
         except ValueError:
-            invalid_subnets.append(ns)
-
-        if len(invalid_subnets) > 0:
-            m = (
+            msg = (
                 "Invalid network: {}, is an "
                 "IP address that belong to {} network.\n"
                 "Check your '{}' variable in 'master.yml'"
                 )
-            raise ValueError(
-                m.format(ns, IPv4Network(ns, strict=False), name)
+            raise AnsibleError(
+                msg.format(item, IPv4Network(item, strict=False), k)
                 )
+
+        self._reserved_subnets(_new_subnets)
+
+        for k, v in _new_subnets.items():
+            subnets = combinations(v, 2)
+            for subnet in subnets:
+                a, b = subnet
+                if a.overlaps(b):
+                    msg = (
+                        "Overlapping subnets: ({}, {}). "
+                        "Check your '{}' variable in 'master.yml'"
+                        )
+                    raise AnsibleError(msg.format(str(a), str(b), k))
 
     def links(self, links):
         for name, group in links.items():
@@ -334,7 +355,7 @@ class CheckVars:
                         "in '{}'. Check your 'master.yml' "
                         "and the errors below.\n{}"
                         )
-                    raise ValueError(m.format(
+                    raise AnsibleError(m.format(
                         dup_iface[0],
                         _group, json.dumps({name: in_item}, indent=2))
                         )
@@ -347,6 +368,6 @@ class CheckVars:
                     if intf in v[b]:
                         m = (
                             "Overlapping interface: {} in {}. Check your "
-                            "\"{}\" and \"{}\" variable in \"master.yml\"."
+                            "'{}' and '{}' variable in 'master.yml'."
                             )
-                        raise Exception(m.format(intf, host, a, b))
+                        raise AnsibleError(m.format(intf, host, a, b))

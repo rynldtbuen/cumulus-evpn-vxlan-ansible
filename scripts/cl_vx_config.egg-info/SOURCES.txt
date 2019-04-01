@@ -1,7 +1,8 @@
 setup.py
 cl_vx_config/__init__.py
-cl_vx_config/core.py
-cl_vx_config/helpers.py
+cl_vx_config/checkconfigvars.py
+cl_vx_config/getconfigvars.py
+cl_vx_config/utilities.py
 cl_vx_config.egg-info/PKG-INFO
 cl_vx_config.egg-info/SOURCES.txt
 cl_vx_config.egg-info/dependency_links.txt

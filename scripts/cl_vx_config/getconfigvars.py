@@ -1,9 +1,11 @@
-from cl_vx_config.helpers import Utilities, CheckVars
+from cl_vx_config.utilities import Utilities
+from cl_vx_config.checkconfigvars import CheckConfigVars
 
 from ansible.inventory.manager import InventoryManager
 from ansible.parsing.dataloader import DataLoader
 from ansible.vars.manager import VariableManager
 from ansible.vars.hostvars import HostVars
+from ansible.errors import AnsibleError
 
 from jinja2 import Environment, FileSystemLoader
 from operator import itemgetter
@@ -12,9 +14,6 @@ from itertools import permutations
 
 import os
 import re
-
-# Class that generates ansible variables
-# needed to deploy Cumulus VxLAN EVPN.
 
 
 class GetConfigVars:
@@ -37,22 +36,39 @@ class GetConfigVars:
             )
 
         self.utils = Utilities()
-        self.chk = CheckVars()
+        self.check = CheckConfigVars()
 
-    def _groups(self, name='network_device'):
-        return self.inventory.get_groups_dict()[name]
+    def _groups(self, name=None):
+        groups = self.inventory.get_groups_dict()
+        if name is None:
+            return groups['network_device']
+        else:
+            try:
+                return groups[name]
+            except KeyError:
+                pass
 
-    # def _hostvars(self, name, groups='network_device'):
-    #     vars = {}
-    #     groups = self._groups(groups)
-    #     hostvars = self.hostvars
-    #     for host in groups:
-    #         try:
-    #             vars[host] = hostvars.raw_get(host)[name]
-    #         except KeyError:
-    #             vars[host] = None
-    #
-    #     return vars
+        if name not in groups['all']:
+            raise AnsibleError(name + ' not found')
+        else:
+            return [name]
+        if name not in self._group_names():
+            raise AnsibleError(name + ' not found')
+
+    def _group_names(self):
+        return list(self.inventory.get_groups_dict().keys())
+
+    def _hostvars(self, name, groups='network_device'):
+        vars = {}
+        groups = self._groups(groups)
+        hostvars = self.hostvars
+        for host in groups:
+            try:
+                vars[host] = hostvars.raw_get(host)[name]
+            except KeyError:
+                vars[host] = None
+
+        return vars
 
     def _host_id(self, host):
         m = re.search(r'(?<=\w\d)\d+', host)
@@ -86,21 +102,13 @@ class GetConfigVars:
                 )
 
     def loopback(self):
+        return self.check.loopbacks_subnet()
+
         base_subnet = (
             self.utils.load_masterfile('loopback_ipv4_base_subnet')
             )
         clag_vxlan_anycast_base_subnet = (
             self.utils.load_masterfile('mlag_vxlan_anycast_base_subnet')
-            )
-        loopback_subnets = (
-            list(base_subnet.values()) + [clag_vxlan_anycast_base_subnet]
-            )
-
-        self.chk.subnets(
-            {'loopback_ipv4_base_subnet': loopback_subnets}
-            )
-        self.chk.reserved_subnets(
-            {'loopback_ipv4_base_subnet': loopback_subnets}
             )
 
         _loopback = {}
@@ -128,7 +136,7 @@ class GetConfigVars:
         vlans = self.utils.load_masterfile('vlans')
         existing_vlans = self.utils.load_datafile('vlans')
 
-        self.chk.vlans(
+        self.check.vlans(
             existing_vlans, [item for k, v in vlans.items() for item in v]
             )
 
@@ -258,7 +266,7 @@ class GetConfigVars:
         vlans = self._vlans()
         clag_interface = self._clag_interface()
         mlag_peer = self._mlag_peerlink()
-        self.chk.mlag_bonds(vlans, mlag)
+        self.check.mlag_bonds(vlans, mlag)
 
         bonds = defaultdict(lambda: defaultdict(dict))
         for rack in mlag:
@@ -300,27 +308,36 @@ class GetConfigVars:
     def _vlans_subnet(self):
         vlans = self.utils.load_masterfile('vlans')
         vlans_subnet = self.utils.load_datafile('vlans_subnet')
-        _vlans = self._vlans()
+
+        # Delete VLANs not in file
+        for vid in vlans_subnet.copy().keys():
+            if vid not in ([
+                    item['id'] for _, v in vlans.items() for item in v
+                    ]):
+                vlans_subnet.pop(vid)
 
         defined_subnets = (
             [item for k, v in vlans.items() for item in v if 'subnet' in item]
             )
 
-        # Check defined subnets not overlaps or duplicate in existing subnets
+        # Check defined subnets not overlaps or duplicate with existing subnets
         for item in defined_subnets:
-            if (item['id'] in vlans_subnet.keys()
-                    and item['subnet'] != vlans_subnet[item['id']]['subnet']):
-                self.chk.subnets(
-                    {'vlans': [item['subnet']]}, vlans_subnet, _vlans)
-                vlans_subnet[item['id']]['subnet'] = item['subnet']
-
-            if item['id'] not in vlans_subnet.keys():
-                self.chk.subnets(
-                    {'vlans': [item['subnet']]}, vlans_subnet, _vlans)
-                vlans_subnet[item['id']] = (
-                    {'subnet': item['subnet'],
-                     'allocation': 'manual'}
+            id = item['id']
+            if (id in vlans_subnet.keys()
+                    and item['subnet'] != vlans_subnet[id]['subnet']):
+                self.check.vlans_subnet(
+                    data=('vlans', id, item['subnet']),
+                    existing_vlans=vlans_subnet
                     )
+                vlans_subnet[id]['subnet'] = item['subnet']
+            if id not in vlans_subnet.keys():
+                self.check.vlans_subnet(
+                    data=('vlans', id, item['subnet']),
+                    existing_vlans=vlans_subnet
+                    )
+                vlans_subnet[id] = {
+                    'subnet': item['subnet'], 'allocation': 'manual'
+                    }
 
         base_net_prefix = '172.16.0.0/14'
         existing_subnets = [v['subnet'] for k, v in vlans_subnet.items()]
@@ -374,13 +391,13 @@ class GetConfigVars:
                         'allocation': 'auto_subnet'
                          })
         except StopIteration:
-            raise Exception('Run out of subnets.')
+            raise AnsibleError('Run out of subnets.')
 
-        for vid in vlans_subnet.copy().keys():
-            if vid not in (
-                    [item['id'] for _, v in vlans.items() for item in v]
-                    ):
-                vlans_subnet.pop(vid)
+        # for vid in vlans_subnet.copy().keys():
+        #     if vid not in ([
+        #             item['id'] for _, v in vlans.items() for item in v
+        #             ]):
+        #         vlans_subnet.pop(vid)
 
         return self.utils.dump_datafile('vlans_subnet', vlans_subnet)
 
@@ -522,14 +539,16 @@ class GetConfigVars:
                                     grp,
                                     self.utils.range_to_cluster(iface_range),
                                     nei_grp,
-                                    self.utils.range_to_cluster(nei_iface_range)
+                                    self.utils.range_to_cluster(
+                                        nei_iface_range)
                                     )
                                 )
                         else:
                             in_item = (
                                 "{}:{} -- {}:{}".format(
                                     nei_grp,
-                                    self.utils.range_to_cluster(nei_iface_range),
+                                    self.utils.range_to_cluster(
+                                        nei_iface_range),
                                     grp,
                                     self.utils.range_to_cluster(iface_range)
                                     )
@@ -564,7 +583,7 @@ class GetConfigVars:
                         })
             _links[name] = dict(links_list)
 
-        self.chk.links(_links)
+        self.check.links(_links)
 
         return _links
 
@@ -737,7 +756,7 @@ class GetConfigVars:
             intfs_list[host].update({'mlag_peerlink_interface': peerlink})
             intfs_list[host].update({'mlag_bonds': members})
 
-        self.chk.interfaces_list(intfs_list)
+        self.check.interfaces_list(intfs_list)
 
     def ptm(self):
         ext_con = self.utils.load_masterfile('external_connectivity')
@@ -804,3 +823,38 @@ class GetConfigVars:
                 pass
 
         return nat_rules
+
+    def revised_link(self, link):
+        # Return list of tuples of permutations of link base on Ansible Inventory
+        # Argument format:'group/host:staring_port -- group/host:staring_port'
+        # group and host must exist in ansible inventory
+        # Ex. 'spine:swp1 -- leaf:swp21'
+        # Return values: [(spine01, swp1, leaf01, swp21), leaf01, swp21, spine01, swp1]
+        _link = permutations(
+            [i for item in link.split('--') for i in item.strip().split(':')]
+            )
+
+        for item in list(_link)[0::16]:
+            dev_a, a_port, dev_b, b_port = item
+
+            data = (
+                self._groups(dev_a),
+                self.utils.ifrange(a_port, len(self._groups(dev_b))),
+                self._groups(dev_b),
+                self.utils.ifrange(b_port, len(self._groups(dev_a)))
+            )
+
+            hosts, ports, nei, nei_ports = data
+            for h in range(len(hosts)):
+                for n in range(len(nei)):
+                    yield hosts[h], ports[n], nei[n], nei_ports[h]
+
+    def revised_ifunnumbered(self, links):
+        x = []
+        for item in links:
+            host, port, rhost, rport = item
+            x.append({
+                'host': host, 'port': port,
+                'remote_host': rhost, 'remote_port': rport
+            })
+        return x

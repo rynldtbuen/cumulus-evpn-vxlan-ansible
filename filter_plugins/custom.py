@@ -1,6 +1,6 @@
 from itertools import groupby
 from operator import itemgetter
-from cl_vx_config.core import GetConfigVars
+from cl_vx_config.getconfigvars import GetConfigVars
 import re
 
 getconfigvars = GetConfigVars()

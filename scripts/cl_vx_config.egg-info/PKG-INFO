@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: cl-vx-config
-Version: 1.0.10
+Version: 1.0.12
 Summary: Generate Ansible variables to Deploy Cumulus VXLAN-EVPN
 Home-page: UNKNOWN
 Author: Reynold Tabuena
