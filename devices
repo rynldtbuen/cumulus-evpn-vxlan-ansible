@@ -9,7 +9,7 @@ leaf04 mgmt_hwaddr='0c:d9:c8:e6:7e:00'
 [border]
 border01 mgmt_hwaddr='0c:d9:c8:47:bf:00'
 border02 mgmt_hwaddr='0c:d9:c8:48:32:00'
-
+#border03
 [spine]
 spine01 mgmt_hwaddr='0c:d9:c8:e9:b5:00'
 spine02 mgmt_hwaddr='0c:d9:c8:c9:ae:00'

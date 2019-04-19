@@ -3,95 +3,69 @@
 vlans:
   tenant01:
     - { id: '100', name: 'vlan100'}
-    - { id: '101', name: 'vlan101'}
-    - { id: '102', name: 'vlan101', subnet: '172.16.0.0/24'}
-    # - { id: '103', name: 'vlan101', subnet: '172.16.2.0/24'}
-
-  #   - { id: '102', name: 'vlan102'}
-  #   - { id: '103', name: 'vlan103'}
-  # tenant02:
-  #   - { id: '500', name: 'vlan500'}
-  #   - { id: '501', name: 'vlan501'}
-  #   - { id: '502', name: 'vlan502'}
-  #   - { id: '503', name: 'vlan503', subnet: '172.16.0.0/23'}
-    # - { id: '503', name: 'vlan504', subnet_size: 23}
-  #   - { id: '301', name: 'vlan301', subnet_size: 23}
-  #   - { id: '801', name: 'vlan801', subnet: '10.0.0.0/24'}
+    # - { id: '101', name: 'vlan101'}
+    # - { id: '102', name: 'vlan102', prefixlen: 22}
+  tenant02:
+    - { id: '500', name: 'vlan500'}
+    # - { id: '501', name: 'vlan501'}
+    # - { id: '502', name: 'vlan502', network_prefix: '10.0.30.0/24'}
   # vrf03:
   #   - { id: '810', name: 'vlan800'}
-    # - { id: '801', name: 'vlan801'}
-    # - { id: '810', name: 'vlan802'}
-  # # default:
-  #   - { id: '2', name: data01, subnet: '10.0.0.0/24' }
-  #   - { id: '3', name: voice }
-  #   - { id: '4', name: data02, subnet_size: 23 }
+  #   - { id: '811', name: 'vlan811'}
+  #   - { id: '812', name: 'vlan812'}
+  # default:
+  #   - { id: '10', name: data01, network_prefix: '10.0.0.0/24' }
+  #   - { id: '11', name: voice }
+  #   - { id: '20', name: data02, prefixlen: 23 }
+  #   - { id: '21', name: voice }
 
 # Define mlag bond, a dual-connected servers. Switch 'leaf01' and 'leaf02' is a mlag pair named 'rack01'
-# and so on. Bond members will be the same on each switch. Currently not supported
+# and so on. Bond members will be the same on pair switch. Currently not supported
 # to assign a different bond members on each switch.
 mlag_bonds:
   rack01:
     - { name: server01, members: 'swp1', vids: '100' }
-    - { name: server02, members: 'swp2', vids: '101' }
-    # - { name: server03, members: 'swp3', vids: '500-502' }
-    # - { name: server04, members: 'swp4', vids: '100-103' }
+    # - { name: server02, members: 'swp10-11', vids: '500,501,502' }
+    # - { name: server03, members: 'swp15,swp16,swp17', vids: '10,11,20-21'}
   rack02:
-    - { name: server03, members: 'swp1', vids: '100' }
-    # - { name: server04, members: 'swp13-14', vids: '500-502' }
+    - { name: server01, members: 'swp1', vids: '500' }
+    # - { name: server02, members: 'swp5-8', vids: '500-502' }
+    # - { name: server03, members: 'swp3,swp5,swp10-11', vids: '500'}
 
-# An interface between mlag pair switch.
-mlag_peerlink_interface: 'swp23-24'
-
-# A base vxlan anycast subnet to automatically allocate
-# vxlan-anycast-ip to VTEP in a mlag deployment.
-# mlag_vxlan_anycast_base_subnet: '10.254.0.0/23'
+# An interface between mlag peer switch.
+mlag_peerlink_interfaces: 'swp23-24'
 
 fabric:
   - 'spine:swp1 -- leaf:swp21'
-  - 'spine:swp23 -- border:swp23'
+  # - 'spine:swp23 -- border:swp10'
+  # - 'spine:swp10 -- border:swp11'
 
 external_connectivity:
-  - 'edge01:eth0 -- border01:swp1'
-  - 'edge01:eth1 -- border02:swp1'
-
-# # Define a base loopback ipv4 subnet each ansible group. Each host will automatically
-# # assign an loopback ip address based on the given base subnet
-# # and their 'host_id'. The 'host_id' will derive from the last number
-# # of the hostname. Ex. host 'leaf01' has a 'host_id' of '1' therefore 'leaf01'
-# # will have a loopback ip address of '10.254.2.1/32'
-# loopback_ipv4_base_subnet:
-#   spine: '10.254.0.0/25'
-#   edge: '10.254.0.128/25'
-#   border: '10.254.1.0/24'
-#   leaf: '10.254.2.0/23'
-#
-# # Define a base bgp asn each ansible group. Each host will automatically
-# # assign a bgp asn on the the given base asn and their 'host_id'. Ex. host
-# # 'leaf02' will have a bgp asn of 64682. Except for the ansible group 'spine',
-# # wil have a same bgp asn on each host.
-# bgp_base_asn:
-#   spine: 64512
-#   edge: 64531
-#   border: 64551
-#   leaf: 64581
-
+  - 'edge:eth0 -- border:swp1'
+  # - 'spine:swp15 -- border:swp10'
+  # - 'edge01:eth0 -- border02:swp5'
 
 #############BASE CONFIG###############
-
-base_subnets:
-  loopbacks: '10.254.0.0/21'
-  # loopbacks:
-  #     spine: '10.254.0.0/25'
-  #     edge: '10.254.0.128/25'
-  #     border: '10.254.1.0/24'
-  #     leaf: '10.254.2.0/23'
-  vxlan_anycast: '10.254.8.0/23'
+# Define base network/prefix change accordingly
+# loopbacks: # use to generete loopback ip of each device.
+#   "name of ansible group": "network/prefix"
+# vxlan_anycast: # use to generate vtep address in mlag deployments.
+# vlans: use to generate vlans subnet if no subnet attribute defined in vlan variables.
+# external_connectivity: use to generate point-to-point network /30 prefix, typically between router and edge device.
+base_networks:
+  loopbacks:
+      spine: '192.168.0.0/25'
+      edge: '192.168.0.128/25'
+      border: '192.168.1.0/24'
+      leaf: '192.168.2.0/23'
+  vxlan_anycast: '192.168.8.0/23'
   vlans: '172.16.0.0/14'
-  external_connectivity: '172.16.20.0/23'
+  external_connectivity: '192.168.254.0/23'
 
-base_asn: 64512
-# base_asn:
-#   spine: 64512
-#   edge: 64531
-#   border: 64551
-#   leaf: 64581
+# Define base private asn, change accordingly
+# "name of ansible group": "base private asn"
+base_asn:
+  spine: 64512
+  edge: 64531
+  border: 64551
+  leaf: 64581

@@ -1,8 +1,9 @@
+from cl_vx_config.inventory import Inventory as inv
 from ipaddress import IPv4Network, IPv4Address, AddressValueError
 from netaddr import IPNetwork, IPSet, cidr_merge, EUI, mac_unix_expanded
 from collections import defaultdict
 from operator import itemgetter
-from itertools import groupby, chain
+from itertools import groupby, chain, permutations
 
 import yaml
 import json
@@ -11,6 +12,26 @@ import re
 
 
 class Utilities:
+
+    def host_id(self, host):
+        m = re.search(r'(?<=\w\d)\d+', host)
+        return int(m.group(0))
+
+    def rack_id(self, host, id=True):
+        host_id = self.host_id(host)
+        if host_id % 2 == 0:
+            pair = host_id - 1
+            x = host_id / 2
+            rack_id = int(host_id - x)
+        else:
+            pair = host_id + 1
+            x = pair / 2
+            rack_id = int(pair - x)
+
+        if id:
+            return rack_id
+        else:
+            return 'rack0' + str(rack_id)
 
     def load_masterfile(self, variable):
         with open(os.getcwd() + '/master.yml', 'r') as f:
@@ -51,6 +72,17 @@ class Utilities:
 
         # if existing_ips is not None:
 
+    def r_get_ip(self, network, index, type='ipprefix'):
+        net = IPNetwork(network)
+        prefixlen = net.prefixlen
+        hosts = list(net.iter_hosts())
+        if type == 'ipprefix':
+            return '{}/{}'.format(hosts[index], prefixlen)
+        elif type == 'loopback':
+            return '{}/32'.format(hosts[index])
+        else:
+            return str(hosts[index])
+
     def get_address(self, addr, index=None):
         try:
             address = IPv4Address(addr)
@@ -72,6 +104,9 @@ class Utilities:
             for subnet in network.subnet(size_of_subnet):
                 existing_networks.append(str(subnet))
                 yield str(subnet)
+
+    def get_subnet_range(self, subnet):
+        return IPSet(subnet).iprange()
 
     def interface(self, iface, type=None):
         m = re.search(r'(\w+|\d+)(?<!\d)', iface)
@@ -190,3 +225,54 @@ class Utilities:
 
     def range_cluster(self, v):
         return self.range_to_cluster(self.cluster_to_range(v))
+
+    def get_links(self, link):
+        # Return list of tuples of permutations of link base on Ansible Inventory
+        # Argument format:'group/host:staring_port -- group/host:staring_port'
+        # group and host must exist in ansible inventory
+        # Ex. 'spine:swp1 -- leaf:swp21'
+        # Return values: [(spine01, swp1, leaf01, swp21), leaf01, swp21, spine01, swp1]
+
+        perm_links = list(permutations(
+            [item.strip() for item in link.split('--')]))
+
+        if slice:
+            _links = perm_links[:len(perm_links)//2]
+        else:
+            _links = perm_links
+
+        data = {'links': [], 'item': link, 'item_ifaces': {}}
+        for index, _link in enumerate(_links):
+            items = [x for item in _link for x in item.split(':')]
+            dev_a, a_port, dev_b, b_port = items
+
+            x = (
+                sorted(inv.groups(dev_a)),
+                self.ifrange(a_port, len(inv.groups(dev_b))),
+                sorted(inv.groups(dev_b)),
+                self.ifrange(b_port, len(inv.groups(dev_a)))
+            )
+
+            hosts, ifaces, nei, nei_ifaces = x
+
+            for h in range(len(hosts)):
+                for n in range(len(nei)):
+                    data['links'].append(
+                        (hosts[h], ifaces[n], nei[n], nei_ifaces[h]))
+
+            if index == 0:
+                data['item_ifaces'] = (
+                    '{}:{} -- {}:{}'.format(dev_a, ifaces, dev_b, nei_ifaces)
+                    )
+
+        return data
+
+    def links(self, links, slice=False):
+
+        try:
+            return self.get_links(links)
+        except AttributeError:
+            x = []
+            for item in links:
+                x.append(self.get_links(item))
+            return x

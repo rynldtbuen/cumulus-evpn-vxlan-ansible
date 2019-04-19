@@ -35,8 +35,7 @@ class GNS3Project:
         r = requests.delete(self.project_url)
         try:
             return (r.json()['message']).replace(
-                'ID None', '"{}"'.format(self.project_name)
-                )
+                'ID None', '"{}"'.format(self.project_name))
         except json.decoder.JSONDecodeError:
             return (
                 'Project "{}" has been delated'.format(self.project_name)
