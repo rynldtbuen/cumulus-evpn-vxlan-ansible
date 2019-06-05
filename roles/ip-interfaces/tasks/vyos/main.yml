@@ -1,7 +1,8 @@
 - block:
     - name: IP INTERFACES RUNNING CONFIGURATION COMMANDS
       set_fact:
-        runconfgs: "{{ showconfg['stdout'] | regex_findall('.*ethernet \\w+ (?!speed|duplex|hw-id|smp).*') }}"
+          runconfgs: "{{ showconfg['stdout']
+              | regex_findall('.*ethernet \\w+ (?!speed|duplex|hw-id|smp).*') }}"
 
     #### Change 'intent.yml' file for the intent configurations commands ####
     - include_tasks: intent.yml
@@ -28,12 +29,12 @@
 
         - name: PUSH IP INTERFACES CONFIGURATION COMMANDS
           napalm_install_config:
-            hostname: '{{ inventory_hostname }}'
-            username: '{{ ansible_user }}'
-            dev_os: '{{ ansible_network_os }}'
-            password: '{{ ansible_ssh_pass }}'
-            config_file: "{{ role_path }}/config/{{ inventory_hostname }}-ip_interfaces.conf"
-            commit_changes: '{{ not ansible_check_mode }}'
+              hostname: '{{ inventory_hostname }}'
+              username: '{{ ansible_user }}'
+              dev_os: '{{ ansible_network_os }}'
+              password: '{{ ansible_ssh_pass }}'
+              config_file: "{{ role_path }}/config/{{ inventory_hostname }}-ip_interfaces.conf"
+              commit_changes: '{{ not ansible_check_mode }}'
           changed_when: not ansible_check_mode
           register: result
 

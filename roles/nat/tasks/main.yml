@@ -1,7 +1,8 @@
 - block:
     - name: NAT RUNNING CONFIGURATION COMMANDS
       set_fact:
-        runconfgs: "{{ showconfg['stdout'] | regex_findall('.*nat.*') }}"
+          runconfgs: "{{ showconfg['stdout']
+              | regex_findall('.*nat.*') }}"
 
     #### Change 'intent.yml' file for the intent configurations commands ####
     - include_tasks: intent.yml

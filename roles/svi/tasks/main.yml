@@ -6,8 +6,8 @@
 - block:
     - name: RUNNING SWITCH VLAN INTERFACES
       set_fact:
-          run_svi_interfaces: "{{ confg_commands['msg'] |
-            regex_findall('(?<=net add vlan )(\\d+)(?= vlan-id.*)') }}"
+          run_svi_interfaces: "{{ confg_commands['msg']
+              | regex_findall('(?<=net add vlan )(\\d+)(?= vlan-id.*)') }}"
 
     - name: NET DEL SVI INTERFACES
       nclu:

@@ -1,11 +1,11 @@
 - name: BGP INTENT CONFIGURATION COMMANDS
   set_fact:
-    intentconfgs: |
-        {%  set asn, router_id = _bgp_neighbors['as'], _bgp_neighbors['router_id'] %}
-        set protocols bgp {{ asn }} maximum-paths ebgp '2'
-        set protocols bgp {{ asn }} parameters router-id '{{ router_id }}'
-        set protocols bgp {{ asn }} redistribute 'static'
-        set protocols bgp {{ asn }} network '0.0.0.0/0'
-        {%  for n in _bgp_neighbors['neighbors'] %}
-        set protocols bgp {{ asn}} neighbor {{ n['neighbor'] }} remote-as '{{ n['remote_as'] }}'
-        {%  endfor %}
+      intentconfgs: |
+          {%  set asn, router_id = _bgp_neighbors['as'], _bgp_neighbors['router_id'] %}
+          set protocols bgp {{ asn }} maximum-paths ebgp '2'
+          set protocols bgp {{ asn }} parameters router-id '{{ router_id }}'
+          set protocols bgp {{ asn }} redistribute 'static'
+          set protocols bgp {{ asn }} network '0.0.0.0/0'
+          {%  for n in _bgp_neighbors['neighbors'] %}
+          set protocols bgp {{ asn}} neighbor {{ n['neighbor'] }} remote-as '{{ n['remote_as'] }}'
+          {%  endfor %}

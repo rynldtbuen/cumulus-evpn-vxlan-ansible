@@ -1,14 +1,14 @@
 - name: IP INTERFACES INTENT CONFIGURATION COMMANDS
   set_fact:
-    intentconfgs: |
-      {%  set ip_ifaces = ip_interfaces[inventory_hostname] %}
-      {%  for interface, v in ip_ifaces.items() %}
-      {%    if '.' in interface %}
-      {%      set iface, vif = interface.split('.') %}
-      set interfaces ethernet {{ iface }} vif {{ vif }} address '{{ v['ip'] }}'
-      set interfaces ethernet {{ iface }} vif {{ vif }} description '{{ v['alias'] }}'
-      {%    else %}
-      set interfaces ethernet {{ interface }} address '{{ v['ip'] }}'
-      set interfaces ethernet {{ interface}} description '{{ v['alias'] }}'
-      {%    endif %}
-      {%  endfor %}
+      intentconfgs: |
+          {%  set ip_ifaces = ip_interfaces[inventory_hostname] %}
+          {%  for interface, v in ip_ifaces.items() %}
+          {%    if '.' in interface %}
+          {%      set iface, vif = interface.split('.') %}
+          set interfaces ethernet {{ iface }} vif {{ vif }} address '{{ v['ip'] }}'
+          set interfaces ethernet {{ iface }} vif {{ vif }} description '{{ v['alias'] }}'
+          {%    else %}
+          set interfaces ethernet {{ interface }} address '{{ v['ip'] }}'
+          set interfaces ethernet {{ interface}} description '{{ v['alias'] }}'
+          {%    endif %}
+          {%  endfor %}

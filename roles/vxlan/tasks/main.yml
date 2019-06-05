@@ -6,8 +6,8 @@
 - block:
     - name: RUNNING VXLAN INTERFACES
       set_fact:
-          run_vxlan_interfaces: "{{ confg_commands['msg'] |
-            regex_findall('(?<=net add vxlan )(\\w+)(?=\\svxlan id)') }}"
+          run_vxlan_interfaces: "{{ confg_commands['msg']
+              | regex_findall('(?<=net add vxlan )(\\w+)(?=\\svxlan id)') }}"
 
     - name: NET DEL VXLAN INTERFACES
       nclu:
@@ -24,8 +24,8 @@
 
     - name: VXLAN RUNNING CONFIGURATION COMMANDS
       set_fact:
-          runconfgs: "{{ confg_commands['msg'] |
-              regex_findall('net add vxlan \\w+\\S+ (?!stp).*') }}"
+          runconfgs: "{{ confg_commands['msg']
+              | regex_findall('net add vxlan \\w+\\S+ (?!stp).*') }}"
 
     #***** Change 'intent.yml' file for intent configurations commands *****#
     - include_tasks: intent.yml

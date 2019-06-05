@@ -6,13 +6,13 @@
 - block:
     - name: MLAG PEERLINK RUNNING INTERFACE
       set_fact:
-          peerlink_run_interface: "{{ confg_commands['msg'] |
-            regex_findall('(?<=net add bond )(?=peerlink)(\\w+)') }}"
+          peerlink_run_interface: "{{ confg_commands['msg']
+              | regex_findall('(?<=net add bond )(?=peerlink)(\\w+)') }}"
 
     - name: MLAG PEERLINK RUNNING CONFIGURATION COMMANDS
       set_fact:
-          runconfgs: "{{ confg_commands['msg'] |
-            regex_findall('net add interface peerlink.*') }}"
+          runconfgs: "{{ confg_commands['msg']
+              | regex_findall('net add interface peerlink.*') }}"
 
     - name: NET DEL|ADD PEERLINK|BOND SLAVES
       nclu:

@@ -1,8 +1,8 @@
 - block:
     - name: RUNNING IP INTERFACES
       set_fact:
-          run_ip_interfaces: "{{ confg_commands['msg'] |
-            regex_findall('(?<=interface )(\\w+.\\d+)(?= ip.*)') }}"
+          run_ip_interfaces: "{{ confg_commands['msg']
+              | regex_findall('(?<=interface )(\\w+.\\d+)(?= ip.*)') }}"
 
     - name: NET DEL IP INTERFACES
       nclu:
@@ -16,8 +16,8 @@
     - name: IP INTERFACES RUNNING CONFIGURATION COMMANDS
       set_fact:
           runconfgs: |
-              {%  set _confg_commands = confg_commands['msg'] |
-                      regex_findall('net add interface \\w+\\.\\d+.*|net add interface (?!eth0)\\w+\\s.*') %}
+              {%  set _confg_commands = confg_commands['msg']
+                    | regex_findall('net add interface \\w+\\.\\d+.*|net add interface (?!eth0)\\w+\\s.*') %}
               {%  set ip_ifaces = ip_interfaces[inventory_hostname] %}
               {%  for iface in run_ip_interfaces if iface not in ip_ifaces %}
               {%      do run_ip_interfaces.remove(iface) %}

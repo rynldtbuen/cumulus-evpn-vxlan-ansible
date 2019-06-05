@@ -1,11 +1,13 @@
 - block:
     - name: BGP RUNNING CONFIGURATION COMMANDS
       set_fact:
-          runconfgs: "{{ confg_commands['msg'] | regex_findall('.*bgp.*|.*vrf \\w+ vni \\d+') }}"
+          runconfgs: "{{ confg_commands['msg']
+              | regex_findall('.*bgp.*|.*vrf \\w+ vni \\d+') }}"
 
     - name: RUNNING BGP AS
       set_fact:
-          run_bgp_as: "{{ confg_commands['msg'] | regex_search('(?<=system )\\d+') }}"
+          run_bgp_as: "{{ confg_commands['msg']
+              | regex_search('(?<=system )\\d+') }}"
 
     - block:
         - name: NET DEL BGP

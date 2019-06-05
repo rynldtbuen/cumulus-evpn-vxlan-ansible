@@ -1,11 +1,13 @@
 - block:
     - name: ROUTE-MAP RUNNING CONFIGURATION COMMANDS
       set_fact:
-          runconfgs: "{{ confg_commands['msg'] | regex_findall('net add routing route-map.*') }}"
+          runconfgs: "{{ confg_commands['msg']
+              | regex_findall('net add routing route-map.*') }}"
 
     - name: ROUTE-MAP RUNNING CONFIGURATION COMMANDS
       set_fact:
-          runconfgs: "{{ confg_commands['msg'] | regex_findall('net add routing route-map.*') }}"
+          runconfgs: "{{ confg_commands['msg']
+              | regex_findall('net add routing route-map.*') }}"
 
     #***** Change 'intent.yml' file for intent configurations commands *****#
     - include_tasks: intent.yml

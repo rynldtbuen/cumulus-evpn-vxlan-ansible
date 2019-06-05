@@ -1,7 +1,8 @@
 - block:
     - name: BGP RUNNING CONFIGURATION COMMANDS
       set_fact:
-          runconfgs: "{{ showconfg['stdout'] | regex_findall('.*bgp \\d+ .*') }}"
+          runconfgs: "{{ showconfg['stdout']
+              | regex_findall('.*bgp \\d+ .*') }}"
 
     - name: NORMALISED BGP VARIABLES
       set_fact:
@@ -42,12 +43,12 @@
 
         - name: PUSH BGP CONFIGURATION COMMANDS
           napalm_install_config:
-            hostname: '{{ inventory_hostname }}'
-            username: '{{ ansible_user }}'
-            dev_os: '{{ ansible_network_os }}'
-            password: '{{ ansible_ssh_pass }}'
-            config_file: "{{ role_path }}/config/{{ inventory_hostname }}-bgp.conf"
-            commit_changes: '{{ not ansible_check_mode }}'
+              hostname: '{{ inventory_hostname }}'
+              username: '{{ ansible_user }}'
+              dev_os: '{{ ansible_network_os }}'
+              password: '{{ ansible_ssh_pass }}'
+              config_file: "{{ role_path }}/config/{{ inventory_hostname }}-bgp.conf"
+              commit_changes: '{{ not ansible_check_mode }}'
           changed_when: not ansible_check_mode
           register: result
 

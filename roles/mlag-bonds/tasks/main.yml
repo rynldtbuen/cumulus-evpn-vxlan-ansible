@@ -6,13 +6,13 @@
 - block:
     - name: BOND RUNNING INTERFACES
       set_fact:
-          run_bond_interfaces: "{{ confg_commands['msg'] |
-            regex_findall('(?<=net add bond )(?!peerlink)(\\w+)(?=\\sbond slaves)') }}"
+          run_bond_interfaces: "{{ confg_commands['msg']
+              | regex_findall('(?<=net add bond )(?!peerlink)(\\w+)(?=\\sbond slaves)') }}"
 
     - name: BOND RUNNING CONFIGURATION COMMANDS
       set_fact:
-          runconfgs: "{{ confg_commands['msg'] |
-            regex_findall('net add bond (?!peerlink).*') }}"
+          runconfgs: "{{ confg_commands['msg']
+              | regex_findall('net add bond (?!peerlink).*') }}"
 
     - name: NET DEL|ADD BOND INTERFACES|BOND SLAVES
       nclu:

@@ -1,8 +1,8 @@
 - block:
     - name: LO RUNNING CONFIGURATION COMMANDS
       set_fact:
-          runconfgs: "{{ confg_commands['msg'] |
-            regex_findall('net add loopback lo.*') }}"
+          runconfgs: "{{ confg_commands['msg']
+              | regex_findall('net add loopback lo.*') }}"
 
     #***** Change 'intent.yml' file for intent configurations commands *****#
     - include_tasks: intent.yml

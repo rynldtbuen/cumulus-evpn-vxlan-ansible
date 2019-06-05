@@ -1,40 +1,40 @@
 - name: BGP EVPN INTENT CONFIGURATION COMMANDS
   set_fact:
-    intentconfgs: |
-      {%  set _bgp_neighbors = bgp_neighbors[inventory_hostname] %}
-      {#  BGP BASE CONFIGS #}
-      {%  set default = _bgp_neighbors['default'] %}
-      net add bgp autonomous-system {{ default['as'] }}
-      net add bgp router-id {{ default['router_id'] }}
-      net add bgp bestpath as-path multipath-relax
-      {%  for peer_group in default['peer_groups'] %}
-      net add bgp neighbor {{ peer_group }} peer-group
-      net add bgp neighbor {{ peer_group }} remote-as external
-      net add bgp neighbor {{ peer_group }} capability extended-nexthop
-      net add bgp l2vpn evpn  neighbor {{ peer_group }} activate
-      {%  endfor %}
-      {%  for v in default['neighbors'] %}
-      net add bgp neighbor {{ v['neighbor'] }} interface peer-group {{ v['peer_group'] }}
-      {%  endfor %}
-      {#  ADVERTISE VNI #}
-      {%  if inventory_hostname not in groups['spine'] %}
-      net add bgp l2vpn evpn  advertise-all-vni
-      {%  endif %}
-      {#  BGP VRF CONFIGS #}
-      {%  for vrf, bgp in _bgp_neighbors.items() if vrf != 'default' %}
-      net add bgp vrf {{ vrf }} autonomous-system {{ bgp['as'] }}
-      net add bgp vrf {{ vrf }} router-id {{ bgp['router_id'] }}
-      net add bgp vrf {{ vrf }} bestpath as-path multipath-relax
-      {%      for v in bgp['neighbors'] %}
-      net add bgp vrf {{ vrf }} neighbor {{ v['neighbor'] }} remote-as external
-      {%      endfor %}
-      net add bgp vrf {{ vrf }} l2vpn evpn  advertise ipv4 unicast
-      {%  endfor %}
-      {#  APPLY ROUTE-MAP #}
-      net add bgp ipv4 unicast redistribute connected route-map LOOPBACK_ROUTES
-      {# VRF to Layer 3 VNI Mapping #}
-      {%  if inventory_hostname in l3vni %}
-      {%  for vrf, vni in l3vni[inventory_hostname].items() %}
-      net add vrf {{ vrf }} vni {{ vni }}
-      {%  endfor %}
-      {%  endif %}
+      intentconfgs: |
+          {%  set _bgp_neighbors = bgp_neighbors[inventory_hostname] %}
+          {#  BGP BASE CONFIGS #}
+          {%  set default = _bgp_neighbors['default'] %}
+          net add bgp autonomous-system {{ default['as'] }}
+          net add bgp router-id {{ default['router_id'] }}
+          net add bgp bestpath as-path multipath-relax
+          {%  for peer_group in default['peer_groups'] %}
+          net add bgp neighbor {{ peer_group }} peer-group
+          net add bgp neighbor {{ peer_group }} remote-as external
+          net add bgp neighbor {{ peer_group }} capability extended-nexthop
+          net add bgp l2vpn evpn  neighbor {{ peer_group }} activate
+          {%  endfor %}
+          {%  for v in default['neighbors'] %}
+          net add bgp neighbor {{ v['neighbor'] }} interface peer-group {{ v['peer_group'] }}
+          {%  endfor %}
+          {#  ADVERTISE VNI #}
+          {%  if inventory_hostname not in groups['spine'] %}
+          net add bgp l2vpn evpn  advertise-all-vni
+          {%  endif %}
+          {#  BGP VRF CONFIGS #}
+          {%  for vrf, bgp in _bgp_neighbors.items() if vrf != 'default' %}
+          net add bgp vrf {{ vrf }} autonomous-system {{ bgp['as'] }}
+          net add bgp vrf {{ vrf }} router-id {{ bgp['router_id'] }}
+          net add bgp vrf {{ vrf }} bestpath as-path multipath-relax
+          {%      for v in bgp['neighbors'] %}
+          net add bgp vrf {{ vrf }} neighbor {{ v['neighbor'] }} remote-as external
+          {%      endfor %}
+          net add bgp vrf {{ vrf }} l2vpn evpn  advertise ipv4 unicast
+          {%  endfor %}
+          {#  APPLY ROUTE-MAP #}
+          net add bgp ipv4 unicast redistribute connected route-map LOOPBACK_ROUTES
+          {# VRF to Layer 3 VNI Mapping #}
+          {%  if inventory_hostname in l3vni %}
+          {%  for vrf, vni in l3vni[inventory_hostname].items() %}
+          net add vrf {{ vrf }} vni {{ vni }}
+          {%  endfor %}
+          {%  endif %}
