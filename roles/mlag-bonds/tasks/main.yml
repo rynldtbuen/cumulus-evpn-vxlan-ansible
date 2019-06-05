@@ -48,8 +48,8 @@
         - name: DEL BOND SLAVES CONFLICT
           nclu:
               template: |
-                  {%  set bond = mlag_bonds_['msg'] |
-                          regex_search('(?<= is already enslaved to )\\w+') %}
+                  {%  set bond = mlag_bonds_['msg']
+                        | regex_search('(?<= is already enslaved to )\\w+') %}
                   del bond {{ bond }}
               abort: true
 
@@ -82,8 +82,8 @@
     - name: PUSH BONDS INTENT CONFIGURATION COMMANDS
       nclu:
           template: |
-              {%  set _intentconfgs = intentconfgs.split('\n') |
-                      reject('equalto', '') | list %}
+              {%  set _intentconfgs = intentconfgs.split('\n')
+                    | reject('equalto', '') | list %}
               {%  for confg in _intentconfgs if confg not in runconfgs %}
               {{ confg.replace('net add', 'add') }}
               {%  endfor %}

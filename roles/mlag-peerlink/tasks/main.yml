@@ -40,8 +40,8 @@
         - name: DEL BOND SLAVES CONFLICT
           nclu:
               template: |
-                  {%  set bond = mlag_peerlink_['msg'] |
-                          regex_search('(?<= is already enslaved to )\\w+') %}
+                  {%  set bond = mlag_peerlink_['msg']
+                        | regex_search('(?<= is already enslaved to )\\w+') %}
                   del bond {{ bond }}
               abort: true
           changed_when: false

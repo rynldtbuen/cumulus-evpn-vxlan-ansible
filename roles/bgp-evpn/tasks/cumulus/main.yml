@@ -14,7 +14,8 @@
           nclu:
               template: |
                   del bgp autonomous-system {{ run_bgp_as }}
-                  {%  set vrfs = confg_commands['msg'] | regex_findall('(?<=vrf )\\w+(?= auto)') %}
+                  {%  set vrfs = confg_commands['msg']
+                        | regex_findall('(?<=vrf )\\w+(?= auto)') %}
                   {%  for vrf in vrfs %}
                   del bgp vrf {{ vrf }} autonomous-system {{ run_bgp_as }}
                   {%  endfor %}
@@ -62,8 +63,8 @@
     - name: PUSH BGP EVPN INTENT CONFIGURATION COMMANDS
       nclu:
           template: |
-              {%  set _intentconfgs = intentconfgs.split('\n') |
-                      reject('equalto', '') | list %}
+              {%  set _intentconfgs = intentconfgs.split('\n')
+                    | reject('equalto', '') | list %}
               {%  for confg in runconfgs if confg not in _intentconfgs %}
               {{ confg.replace('net add', 'del') }}
               {%  endfor %}

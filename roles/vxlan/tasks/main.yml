@@ -12,12 +12,10 @@
     - name: NET DEL VXLAN INTERFACES
       nclu:
           template: |
-              {%  set vxlan_intent_interfaces = (
-                  vxlans[inventory_hostname]['vxlan_interfaces'] |
-                  map(attribute='name') | list
-                  ) %}
+              {%  set vxlan_intent_interfaces = vxlans[inventory_hostname]['vxlan_interfaces']
+                    | map(attribute='name') | list %}
               {%  for interface in run_vxlan_interfaces
-                    if interface not in vxlan_intent_interfaces %}
+                      if interface not in vxlan_intent_interfaces %}
               del vxlan {{ interface }}
               {%  endfor %}
       register: vxlan_
@@ -33,8 +31,8 @@
     - name: PUSH VXLAN INTENT CONFIGURATION COMMANDS
       nclu:
           template: |
-              {%  set _intentconfgs = intentconfgs.split('\n') |
-                      reject('equalto', '') | list %}
+              {%  set _intentconfgs = intentconfgs.split('\n')
+                    | reject('equalto', '') | list %}
               {%  for confg in _intentconfgs if confg not in runconfgs %}
               {{ confg.replace('net add', 'add') }}
               {%  endfor %}

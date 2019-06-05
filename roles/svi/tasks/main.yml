@@ -40,8 +40,8 @@
     - name: PUSH SVI INTENT CONFIGURATION COMMANDS
       nclu:
           template: |
-              {%  set _intentconfgs = intentconfgs.split('\n') |
-                      reject('equalto', '') | list %}
+              {%  set _intentconfgs = intentconfgs.split('\n')
+                    | reject('equalto', '') | list %}
               {%  for confg in runconfgs if confg not in _intentconfgs %}
               {{ confg.replace('net add', 'del') }}
               {%  endfor %}
