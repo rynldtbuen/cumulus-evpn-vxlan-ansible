@@ -4,10 +4,32 @@
   tasks:
 
   - include_vars: 'master.yml'
-  
+
+  - name: DNSMASQ.CONF
+    set_fact:
+        dnsmasq_conf: |
+            # Configuration file documentation https://oss.segetech.com/intra/srv/dnsmasq.conf
+            domain-needed
+            bogus-priv
+            no-resolv
+            no-poll
+            server={{ dns_forwarder }}
+            listen-address=127.0.0.1
+            listen-address={{ dns_server }}
+            domain={{ domain }}
+            dhcp-range={{ dhcp_range }}
+            dhcp-option=option:router,{{ gateway_address }}
+            {# Set static host #}
+            {% for host in groups['cumulus'] | sort %}
+            dhcp-host={{ hostvars[host]['mgmt_hwaddr'] }},{{ host }}
+            {% endfor %}
+            {% for host in groups['edge'] %}
+            dhcp-host={{ hostvars[host]['ansible_host'] }},{{ host }}
+            {% endfor %}
+
   - name: UPDATE DNSMASQ.CONF
-    template:
-        src: 'dnsmasq.j2'
+    copy:
+        content: '{{ dnsmasq_conf }}'
         dest: '/etc/dnsmasq.conf'
     register: dnsmasq
 
