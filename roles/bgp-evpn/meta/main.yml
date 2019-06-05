@@ -1,3 +1,0 @@
-# dependencies:
-#   - { role: ip-interfaces }
-#   - { role: route-maps, when: ansible_network_os == 'cumulus' }

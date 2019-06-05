@@ -1,4 +1,4 @@
-#### Ansible Playbook to deploy Cumulus VXLAN EVPN in Symmetric Routing
+## Ansible Playbook to deploy Cumulus VXLAN EVPN in Symmetric Routing
 
 ### 1. Test deployment using GNS3
 - Download and install [GNS3](https://www.gns3.com/software)

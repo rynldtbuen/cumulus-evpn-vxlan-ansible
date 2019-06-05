@@ -1,7 +1,7 @@
 - block:
     - name: CHECK IF HOST IS REACHABLE
       wait_for_connection:
-        timeout: 10
+          timeout: 10
       register: _ping
       failed_when: false
 
