@@ -1,6 +1,0 @@
-- name: generate host interfaces ip variables
-  set_fact:
-    interfaces_ip: "{{ 'interfaces_ip' | get_config }}"
-  run_once: true
-
-- include_tasks: "{{ ansible_network_os }}.yml"

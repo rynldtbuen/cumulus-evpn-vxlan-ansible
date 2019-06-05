@@ -1,31 +1,38 @@
 import json
-import copy
-import itertools
+import re
+# from cl_vx_config.configvars import ConfigVars
+# from cl_vx_config.utils.checkvars import CheckVars
+# from cl_vx_config.utils.filters import Filters
+from cl_vx_config.utils import Host
 
-from cl_vx_config.utils import File, Inventory, MACAddr, Host, Network
-from cl_vx_config.utils.checkconfig import CheckVars
-from cl_vx_config.getconfig import GetConfig
-
-cl = GetConfig()
-device = Inventory()
-checked = CheckVars()
+# cl = ConfigVars()
+# checkvars = CheckVars()
+# filter = Filters()
 
 configs = [
-    # 'loopbacks',
     # '_vlans'
+    # '_host_vlans'
+    # 'loopback_ips',
     # 'mlag_peerlink',
     # 'mlag_bonds',
-    # '_host_vlans',
-    # 'vxlan'
-    '_vlans_network'
-    # 'dummy'
+    # 'vxlans',
+    # 'vlans_interface',
+    # 'ip_interfaces',
+    # 'unnumbered_interfaces',
+    # 'bgp_neighbors',
+    'l3vni'
 ]
 
-for config in configs:
-    method = getattr(cl, config)
-    try:
-        print(json.dumps(method(), indent=4))
-    except json.decoder.JSONDecodeError:
-        print(method())
-    except TypeError:
-        print(method())
+x = int(re.split('(\\d+)', 'dc2_leaf01')[-2])
+
+print(x)
+# for config in configs:
+#     method = getattr(cl, config)
+#     try:
+#         print(json.dumps(method(), indent=4))
+#     except json.decoder.JSONDecodeError:
+#         print(method())
+#     except TypeError:
+#         print(method())
+
+# print(cl._host_vlans)

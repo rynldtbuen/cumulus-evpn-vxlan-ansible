@@ -1,20 +1,28 @@
-- name: sync dnsmasq hosts with inventory
+- name: DNSMASQ
   hosts: localhost
   gather_facts: false
   tasks:
 
-  - name: generate dnsmasq.conf
+  - include_vars: 'master.yml'
+  
+  - name: UPDATE DNSMASQ.CONF
     template:
-      src: 'dnsmasq.j2'
-      dest: '/etc/dnsmasq.conf'
+        src: 'dnsmasq.j2'
+        dest: '/etc/dnsmasq.conf'
     register: dnsmasq
 
-  - name: test dnsmasq config
-    shell: 'dnsmasq --test'
-    when: dnsmasq is changed
+  - block:
+      - name: TEST DNSMASQ CONFIG
+        shell: 'dnsmasq --test'
 
-  - name: restart dnsmasq service
-    systemd:
-      name: dnsmasq
-      state: restarted
+      - name: RESTART DNSMASQ SERVICE
+        systemd:
+            name: dnsmasq
+            state: restarted
+
+      - name: SUCCESS
+        debug:
+            msg: 'Dnsmasq successfully updated'
+        changed_when: true
+        tags: [print_action]
     when: dnsmasq is changed

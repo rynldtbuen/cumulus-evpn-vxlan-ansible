@@ -1,0 +1,100 @@
+- name: SET MLAG BONDS VARIABLES
+  set_fact:
+      mlag_bonds: "{{ 'mlag_bonds' | get_config }}"
+  run_once: true
+
+- block:
+    - name: BOND RUNNING INTERFACES
+      set_fact:
+          run_bond_interfaces: "{{ confg_commands['msg'] |
+            regex_findall('(?<=net add bond )(?!peerlink)(\\w+)(?=\\sbond slaves)') }}"
+
+    - name: BOND RUNNING CONFIGURATION COMMANDS
+      set_fact:
+          runconfgs: "{{ confg_commands['msg'] |
+            regex_findall('net add bond (?!peerlink).*') }}"
+
+    - name: NET DEL|ADD BOND INTERFACES|BOND SLAVES
+      nclu:
+          template: |
+              {%  set bonds = mlag_bonds[inventory_hostname]['bonds'] %}
+              {%  set bond_intent_interfaces = bonds | map(attribute='name') | list %}
+              {%  for iface in run_bond_interfaces %}
+              {%      if iface in bond_intent_interfaces %}
+              {%          set regex = "(?<=%s bond slaves )(.*)" | format(iface) %}
+              {%          set bond_run_members = (confg_commands['msg'] |
+                              regex_search(regex)).split(',') %}
+              {%          for bond in bonds if bond['name'] == iface %}
+              {%              set del_members  = bond_run_members |
+                                  difference(bond['members'].split(',')) %}
+              {%              if del_members | length > 0 %}
+              del bond {{ iface }} bond slaves {{ del_members | join(',') }}
+              {%              endif %}
+              {%          endfor %}
+              {%      else %}
+              del bond {{ iface }}
+              {%      endif %}
+              {%  endfor %}
+              {%  for bond in bonds %}
+              {%      set add_bond = 'net add bond %s bond slaves %s' |
+                          format(bond['name'], bond['members']) %}
+              {%      if add_bond not in runconfgs %}
+              {{ add_bond.replace('net add', 'add') }}
+              {%      endif %}
+              {%  endfor %}
+      register: mlag_bonds_
+
+    - block:
+        - name: DEL BOND SLAVES CONFLICT
+          nclu:
+              template: |
+                  {%  set bond = mlag_bonds_['msg'] |
+                          regex_search('(?<= is already enslaved to )\\w+') %}
+                  del bond {{ bond }}
+              abort: true
+
+        - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+          nclu:
+              commands:
+              - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+          register: commit_bond_conflict
+          changed_when: not ansible_check_mode
+          tags: [print_action]
+
+        - name: "{{ mlag_bonds_['msg'] | upper }}"
+          fail:
+              msg: |
+                  ***Commit the pending changes first by running the playbook in normal mode***
+                  ***Note: Review the pending changes of the dependencies role because this will be committed the next time you run the play in normal mode***
+          when: ansible_check_mode
+
+        - name: TRY RUNNING THE PLAYBOOK AGAIN
+          fail:
+              msg: |
+                  Changes committed to avoid error cause by: {{ mlag_bonds_['msg'] | replace('\n', '') }}
+                  Try running the playbook again in check mode or in normal mode
+          when: commit_bond_conflict is changed
+      when: mlag_bonds_['msg'] is search('interface \w+ is already enslaved to \w+')
+
+    #***** Change 'intent.yml' file for intent configurations commands *****#
+    - include_tasks: intent.yml
+
+    - name: PUSH BONDS INTENT CONFIGURATION COMMANDS
+      nclu:
+          template: |
+              {%  set _intentconfgs = intentconfgs.split('\n') |
+                      reject('equalto', '') | list %}
+              {%  for confg in _intentconfgs if confg not in runconfgs %}
+              {{ confg.replace('net add', 'add') }}
+              {%  endfor %}
+      register: _mlag_bonds
+
+    - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+      nclu:
+          commands:
+          - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+      when: mlag_bonds_ is changed or _mlag_bonds is changed
+      changed_when: not ansible_check_mode
+      tags: [print_action]
+  when: inventory_hostname in mlag_bonds
+  check_mode: false

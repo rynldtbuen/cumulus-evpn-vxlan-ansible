@@ -1,0 +1,31 @@
+- block:
+    - name: LO RUNNING CONFIGURATION COMMANDS
+      set_fact:
+          runconfgs: "{{ confg_commands['msg'] |
+            regex_findall('net add loopback lo.*') }}"
+
+    #***** Change 'intent.yml' file for intent configurations commands *****#
+    - include_tasks: intent.yml
+
+    - name: PUSH LO INTENT CONFIGURATION COMMANDS
+      nclu:
+          template: |
+              {%  set _intentconfgs = intentconfgs.split('\n') |
+                      reject('equalto', '') | list %}
+              {%  for confg in runconfgs if confg not in _intentconfgs %}
+              {{ confg.replace('net add', 'del') }}
+              {%  endfor %}
+              {%  for confg in _intentconfgs if confg not in runconfgs %}
+              {{ confg.replace('net add', 'add') }}
+              {%  endfor %}
+      register: loopback_ips_
+
+    - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+      nclu:
+          commands:
+          - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+      when: loopback_ips_ is changed
+      changed_when: not ansible_check_mode
+      tags: [print_action]
+  when: inventory_hostname in loopback_ips
+  check_mode: false

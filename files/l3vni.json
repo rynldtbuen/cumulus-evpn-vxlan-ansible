@@ -1,1 +1,1 @@
-{"tenant01": {"id": "4000", "name": "l3vni", "type": "l3", "vlan": "vlan4000"}, "tenant02": {"id": "4001", "name": "l3vni", "type": "l3", "vlan": "vlan4001"}}
+{"tenant01": {"id": "4000", "name": "l3vni", "type": "l3", "vlan": "vlan4000", "tenant": "tenant01"}}

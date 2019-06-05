@@ -1,6 +1,0 @@
-- name: generate host loopback variables
-  set_fact:
-    loopback: "{{ 'loopback' | get_config }}"
-  run_once: true
-
-- include_tasks: "{{ ansible_network_os }}.yml"

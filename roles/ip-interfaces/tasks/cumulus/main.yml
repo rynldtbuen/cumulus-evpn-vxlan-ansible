@@ -1,0 +1,57 @@
+- block:
+    - name: RUNNING IP INTERFACES
+      set_fact:
+          run_ip_interfaces: "{{ confg_commands['msg'] |
+            regex_findall('(?<=interface )(\\w+.\\d+)(?= ip.*)') }}"
+
+    - name: NET DEL IP INTERFACES
+      nclu:
+          template: |
+              {%  set ip_ifaces = ip_interfaces[inventory_hostname] %}
+              {%  for iface in run_ip_interfaces if iface not in ip_ifaces %}
+              del interface {{ iface }}
+              {%  endfor %}
+      register: ip_interfaces_
+
+    - name: IP INTERFACES RUNNING CONFIGURATION COMMANDS
+      set_fact:
+          runconfgs: |
+              {%  set _confg_commands = confg_commands['msg'] |
+                      regex_findall('net add interface \\w+\\.\\d+.*|net add interface (?!eth0)\\w+\\s.*') %}
+              {%  set ip_ifaces = ip_interfaces[inventory_hostname] %}
+              {%  for iface in run_ip_interfaces if iface not in ip_ifaces %}
+              {%      do run_ip_interfaces.remove(iface) %}
+              {%  endfor %}
+              {%  set new_runconfgs = [] %}
+              {%  for confg in _confg_commands
+                      if confg | regex_search('(?<=interface )\w+\.\d+|(?<=interface )(?!eth0)\w+(?=\s)')
+                          in run_ip_interfaces %}
+              {%      do new_runconfgs.append(confg) %}
+              {%  endfor %}
+              {{ new_runconfgs }}
+
+    #***** Change 'intent.yml' file for intent configurations commands *****#
+    - include_tasks: intent.yml
+
+    - name: PUSH IP INTERFACES INTENT CONFIGURATION COMMANDS
+      nclu:
+          template: |
+              {%  set _intentconfgs = intentconfgs.split('\n') |
+                      reject('equalto', '') | list %}
+              {%  for confg in runconfgs if confg not in _intentconfgs %}
+              {{ confg.replace('net add', 'del') }}
+              {%  endfor %}
+              {%  for confg in _intentconfgs if confg not in runconfgs %}
+              {{ confg.replace('net add', 'add') }}
+              {%  endfor %}
+      register: _ip_interfaces
+
+    - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+      nclu:
+          commands:
+          - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+      when: ip_interfaces_ is changed or _ip_interfaces is changed
+      changed_when: not ansible_check_mode
+      tags: [print_action]
+  when: inventory_hostname in ip_interfaces
+  check_mode: false

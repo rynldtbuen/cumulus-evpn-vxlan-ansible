@@ -1,0 +1,34 @@
+- name: UPDATE DNSMASQ.CONF
+  template:
+    src: 'dnsmasq.j2'
+    dest: '/etc/dnsmasq.conf'
+  register: dnsmasq
+  run_once: true
+  delegate_to: localhost
+
+- block:
+    - name: TEST DNSMASQ CONFIG
+      shell: 'dnsmasq --test'
+
+    - name: RESTART DNSMASQ SERVICE
+      systemd:
+        name: dnsmasq
+        state: restarted
+  when: dnsmasq is changed
+  run_once: true
+  delegate_to: localhost
+
+- block:
+    - meta: clear_host_errors
+
+    - name: CHECK IF HOST IS REACHABLE
+      wait_for_connection:
+        timeout: 3
+      register: ping_
+      failed_when: false
+
+    - name: TEMPORARY FAILURE IN NAME RESOLUTION
+      fail:
+          msg: 'Make sure {{ inventory_hostname }} is boot up'
+      when: ping_['elapsed'] >= 3 and ping_['msg'] is search('Temporary failure in name resolution')
+  when: dnsmasq is changed

@@ -1,0 +1,5 @@
+- name: SHOW CONFIGURATION COMMANDS
+  cli_command:
+      command: show configuration commands
+  register: showconfg
+  check_mode: false

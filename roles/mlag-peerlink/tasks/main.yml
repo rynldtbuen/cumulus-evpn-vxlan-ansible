@@ -1,0 +1,94 @@
+- name: SET MLAG PEERLINK VARIABLES
+  set_fact:
+      mlag_peerlink: "{{ 'mlag_peerlink' | get_config }}"
+  run_once: true
+
+- block:
+    - name: MLAG PEERLINK RUNNING INTERFACE
+      set_fact:
+          peerlink_run_interface: "{{ confg_commands['msg'] |
+            regex_findall('(?<=net add bond )(?=peerlink)(\\w+)') }}"
+
+    - name: MLAG PEERLINK RUNNING CONFIGURATION COMMANDS
+      set_fact:
+          runconfgs: "{{ confg_commands['msg'] |
+            regex_findall('net add interface peerlink.*') }}"
+
+    - name: NET DEL|ADD PEERLINK|BOND SLAVES
+      nclu:
+          template: |
+              {%  set peerlink = mlag_peerlink[inventory_hostname] %}
+              {%  set peerlink_members = peerlink['interfaces'].split(',') %}
+              {%  if peerlink_run_interface | length > 0 %}
+              {%      set peerlink_run_members = (confg_commands['msg'] |
+                        regex_search('(?<=peerlink bond slaves )(.*)')).split(',') %}
+              {%      set del_members = peerlink_run_members |
+                        difference(peerlink_members) %}
+              {%      if del_members | length > 0 %}
+              del bond peerlink bond slaves {{ del_members | join(',') }}
+              {%      endif %}
+              {%  endif %}
+              {%  set add_peerlink = 'net add bond peerlink bond slaves %s' |
+                      format(peerlink['interfaces']) %}
+              {%  if add_peerlink not in runconfgs %}
+              {{ add_peerlink.replace('net add', 'add') }}
+              {%  endif %}
+      register: mlag_peerlink_
+      changed_when: false
+
+    - block:
+        - name: DEL BOND SLAVES CONFLICT
+          nclu:
+              template: |
+                  {%  set bond = mlag_peerlink_['msg'] |
+                          regex_search('(?<= is already enslaved to )\\w+') %}
+                  del bond {{ bond }}
+              abort: true
+          changed_when: false
+
+        - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+          nclu:
+              commands:
+              - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+          register: commit_peerlink_conflict
+          changed_when: not ansible_check_mode
+          tags: [print_action]
+
+        - name: "{{ mlag_peerlink_['msg'] | upper }}"
+          fail:
+              msg: |
+                  ***Commit the pending changes first by running the playbook in normal mode***
+                  ***Note: Review the pending changes of the dependencies role because this will be committed the next time you run the play in normal mode***
+          when: ansible_check_mode
+
+        - name: TRY RUNNING THE PLAYBOOK AGAIN
+          fail:
+              msg: |
+                  Changes committed to avoid error cause by: {{ mlag_peerlink_['msg'] | replace('\n', '') }}
+                  Try running the playbook again in check mode or in normal mode
+          when: commit_peerlink_conflict['changed']
+          changed_when: true
+      when: mlag_peerlink_['msg'] is search('interface \w+ is already enslaved to \w+')
+
+    #***** Change 'intent.yml' file for intent configurations commands *****#
+    - include_tasks: intent.yml
+
+    - name: PUSH PEERLINK INTENT CONFIGURATION COMMANDS
+      nclu:
+          template: |
+              {%  set _intentconfgs = intentconfgs.split('\n') |
+                      reject('equalto', '') | list %}
+              {%  for confg in _intentconfgs if confg not in runconfgs %}
+              {{ confg.replace('net add', 'add') }}
+              {%  endfor %}
+      register: _mlag_peerlink
+
+    - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+      nclu:
+          commands:
+          - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+      when: mlag_peerlink_ is changed or _mlag_peerlink is changed
+      changed_when: not ansible_check_mode
+      tags: [print_action]
+  when: inventory_hostname in mlag_peerlink
+  check_mode: false

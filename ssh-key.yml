@@ -1,0 +1,23 @@
+- hosts: cumulus
+  tasks:
+  - name: LOAD SSH KEY FILE
+    authorized_key:
+      user: "{{ ansible_user }}"
+      key: "{{ lookup('file', '/home/reynold/.ssh/id_rsa.pub') }}"
+      state: present
+
+  - name: ADD MGMT VRF
+    shell: "net add vrf mgmt && net commit"
+    async: 5
+    poll: 0
+
+  - name: RECONNECTING TO THE DEVICE
+    wait_for_connection:
+
+  - name: SUCCESS
+    debug:
+        msg: |
+            Ssh key file was succesfully loaded to {{ inventory_hostname | upper }}
+            *** Run the command below if you want to upgrade the device ***
+            ansible-playbook upgrade.yml -l {{ play_hosts | join(',') }}
+    tags: [print_action]

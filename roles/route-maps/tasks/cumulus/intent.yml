@@ -1,0 +1,4 @@
+- name: ROUTE-MAP INTENT CONFIGURATION COMMANDS
+  set_fact:
+    intentconfgs: |
+        net add routing route-map LOOPBACK_ROUTES permit 10 match interface lo

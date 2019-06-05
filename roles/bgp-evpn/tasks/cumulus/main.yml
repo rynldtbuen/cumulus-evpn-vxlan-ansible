@@ -1,0 +1,81 @@
+- block:
+    - name: BGP RUNNING CONFIGURATION COMMANDS
+      set_fact:
+          runconfgs: "{{ confg_commands['msg'] | regex_findall('.*bgp.*|.*vrf \\w+ vni \\d+') }}"
+
+    - name: RUNNING BGP AS
+      set_fact:
+          run_bgp_as: "{{ confg_commands['msg'] | regex_search('(?<=system )\\d+') }}"
+
+    - block:
+        - name: NET DEL BGP
+          nclu:
+              template: |
+                  del bgp autonomous-system {{ run_bgp_as }}
+                  {%  set vrfs = confg_commands['msg'] | regex_findall('(?<=vrf )\\w+(?= auto)') %}
+                  {%  for vrf in vrfs %}
+                  del bgp vrf {{ vrf }} autonomous-system {{ run_bgp_as }}
+                  {%  endfor %}
+              abort: true
+
+        - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+          nclu:
+              commands:
+              - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+          register: bgp_as_conflict
+          changed_when: not ansible_check_mode
+          tags: [print_action]
+
+        - name: FAILED
+          fail:
+              msg: 'Commit the pending changes first'
+          when: ansible_check_mode
+
+        - block:
+            - name: COPY FRR.CONF.SAVE -> FRR.CONF
+              copy:
+                  src: /etc/frr/frr.conf.sav
+                  dest: /etc/frr/frr.conf
+                  owner: frr
+                  group: frr
+                  mode: u=rw,g=r
+                  remote_src: yes
+
+            - name: RELOAD FRR
+              systemd:
+                  name: frr
+                  state: reloaded
+
+            - name: BGP AUTONOMOUS-SYSTEM CHANGED
+              fail:
+                  msg: |
+                      Changes commited to avoid error cause by changing the BGP AS
+                      Try running the playbook again in check mode or in normal mode
+              when: bgp_as_conflict is changed
+      when: run_bgp_as | int != 0 and run_bgp_as | int != bgp_neighbors[inventory_hostname]['default']['as']
+
+    #***** Change 'intent.yml' file for intent configurations commands *****#
+    - include_tasks: intent.yml
+
+    - name: PUSH BGP EVPN INTENT CONFIGURATION COMMANDS
+      nclu:
+          template: |
+              {%  set _intentconfgs = intentconfgs.split('\n') |
+                      reject('equalto', '') | list %}
+              {%  for confg in runconfgs if confg not in _intentconfgs %}
+              {{ confg.replace('net add', 'del') }}
+              {%  endfor %}
+              {%  for confg in _intentconfgs if confg not in runconfgs %}
+              {{ confg.replace('net add', 'add') }}
+              {%  endfor %}
+      register: _bgp_evpn
+
+    - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+      nclu:
+          commands:
+          - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+      when: _bgp_evpn is changed
+      changed_when: not ansible_check_mode
+      tags: [print_action]
+  when: inventory_hostname in bgp_neighbors
+  check_mode: false

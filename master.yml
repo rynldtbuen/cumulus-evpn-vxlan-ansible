@@ -1,56 +1,70 @@
-# Define tenant vlans. Vlans without 'subnet' attribute
-# will get a subnet automatically from reserved network/prelfix 172.16.0.0/14.
+# A master file that hold a configurations to deploy Cumulus VXLAN EVPN
+
+############# VLANS #############
+# Examples:
+# # Generate a VLAN network/prefix with a prefixlen of 20
+# - id: '500'
+#   name: 'vlan500'
+#   prefixlen: 20
+# # Manually assign a network/prefix
+# - id: '501'
+#   name: 'vlan501'
+#   network_prefix: 10.0.0.0/24
+# #
+# - id: '502'
+#   name: 'vlan502'
 vlans:
-  tenant01:
-    - { id: '100', name: 'vlan100'}
-    # - { id: '101', name: 'vlan101'}
-    # - { id: '102', name: 'vlan102', prefixlen: 22}
-  tenant02:
-    - { id: '500', name: 'vlan500'}
-    # - { id: '501', name: 'vlan501'}
-    # - { id: '502', name: 'vlan502', network_prefix: '10.0.30.0/24'}
-  # vrf03:
-  #   - { id: '810', name: 'vlan800'}
-  #   - { id: '811', name: 'vlan811'}
-  #   - { id: '812', name: 'vlan812'}
-  # default:
-  #   - { id: '10', name: data01, network_prefix: '10.0.0.0/24' }
-  #   - { id: '11', name: voice }
-  #   - { id: '20', name: data02, prefixlen: 23 }
-  #   - { id: '21', name: voice }
+    tenant01:
+      - id: '500'
+        name: 'vlan500'
+        prefixlen: 20
+      - id: '501'
+        name: 'vlan500'
+        prefixlen: 24
 
-# Define mlag bond, a dual-connected servers. Switch 'leaf01' and 'leaf02' is a mlag pair named 'rack01'
-# and so on. Bond members will be the same on pair switch. Currently not supported
-# to assign a different bond members on each switch.
-mlag_bonds:
-  rack01:
-    - { name: server01, members: 'swp1', vids: '100' }
-    # - { name: server02, members: 'swp10-11', vids: '500,501,502' }
-    # - { name: server03, members: 'swp15,swp16,swp17', vids: '10,11,20-21'}
-  rack02:
-    - { name: server01, members: 'swp1', vids: '500' }
-    # - { name: server02, members: 'swp5-8', vids: '500-502' }
-    # - { name: server03, members: 'swp3,swp5,swp10-11', vids: '500'}
 
-# An interface between mlag peer switch.
+############# MLAG #############
+# Define a peerlink interfaces required by mlag.
+# The interfaces will be the same for each mlag pair switch
 mlag_peerlink_interfaces: 'swp23-24'
 
-fabric:
-  - 'spine:swp1 -- leaf:swp21'
-  # - 'spine:swp23 -- border:swp10'
-  # - 'spine:swp10 -- border:swp11'
+# Define a dual-connected server. Switch 'leaf01' and 'leaf02' is a mlag pair named 'rack01' and so on.
+# Bond members(slaves) will be the same on each mlag pair switch
+mlag_bonds:
+    rack01: # leaf01, leaf02
+      - name: 'control01'
+        members: 'swp1'
+        vids: '500-501'
+    rack02: # leaf03, leaf04
+      - name: 'compute01'
+        members: 'swp1'
+        vids: '500-501'
+    rack03: # leaf05, leaf06
+      - name: 'compute02'
+        members: 'swp2'
+        vids: '500-501'
 
-external_connectivity:
-  - 'edge:eth0 -- border:swp1'
-  # - 'spine:swp15 -- border:swp10'
-  # - 'edge01:eth0 -- border02:swp5'
 
-#############BASE CONFIG###############
-# Define base network/prefix change accordingly
-# loopbacks: # use to generete loopback ip of each device.
-#   "name of ansible group": "network/prefix"
-# vxlan_anycast: # use to generate vtep address in mlag deployments.
-# vlans: use to generate vlans subnet if no subnet attribute defined in vlan variables.
+############# TOPOLOGY LINKS #############
+# Define a point-to-point links between switches
+
+network_links:
+  - name: fabric
+    links:
+      - 'spine:swp1 -- leaf:swp21'
+      - 'spine:swp23 -- border:swp23'
+    interface_type: unnumbered
+  - name: external_connectivity
+    links:
+      - 'edge:eth0 -- border:swp1'
+    interface_type: sub_interface
+
+############# BASE NETWORKS ###############
+# Change according to your topology
+# loopbacks: # use to generete loopback ip of the device.
+#   "name_of_ansible_group": "network/prefix"
+# vxlan_anycast: # use to generate vtep address in mlag(active-active) deployments.
+# vlans: use to generate vlans subnet if 'subnet' attribute is not defined in 'vlans' variables.
 # external_connectivity: use to generate point-to-point network /30 prefix, typically between router and edge device.
 base_networks:
   loopbacks:
@@ -62,10 +76,28 @@ base_networks:
   vlans: '172.16.0.0/14'
   external_connectivity: '192.168.254.0/23'
 
-# Define base private asn, change accordingly
-# "name of ansible group": "base private asn"
+############# BASE BGP AS #############
+# Change according to your topology
+# "name_of_ansible_group": "base_private_asn"
 base_asn:
   spine: 64512
-  edge: 64531
-  border: 64551
-  leaf: 64581
+  edge: 64530
+  border: 64550
+  leaf: 64580
+
+############# STATIC INTERFACES #############
+ip_interfaces:
+    edge01:
+      eth3:
+          address: dhcp
+          desc: OUTSIDE
+      eth2: # Management interface
+          address: '172.24.0.254/24'
+          desc: INSIDE
+
+############# OUT-OF-BAND MANAGEMENT #############
+domain: 'cumulusvxgns3.lab'
+dhcp_range: 172.24.0.50,172.24.0.200
+gateway_address: '172.24.0.254'
+dns_server: '172.24.0.10'
+dns_forwarder: '8.8.8.8'

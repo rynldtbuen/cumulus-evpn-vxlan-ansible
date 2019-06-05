@@ -1,25 +1,40 @@
-- name: reset to default config
+- name: RESET TO DEFAULT CONFIG
   hosts: cumulus
   gather_facts: false
+  vars_prompt:
+      - name: reset
+        prompt: "Delete all configurations? [y/n]"
+        default: 'y'
+        private: no
   tasks:
+  - block:
 
-  - name: net del all
-    shell: "net del all && net commit"
+    - name: DELETING ALL CURRENT CONFIGS
+      nclu:
+          commands:
+              - del all
+          commit: true
+      register: del_all
 
-  - name: reboot switch
-    shell: "sleep 5 && reboot"
-    async: 5
-    poll: 0
-    tags: reboot
+    - block:
+        - name: REBOOT DEVICE
+          shell: "sleep 5 && reboot"
+          async: 5
+          poll: 0
 
-  - name: wait for switch to boot up
-    wait_for_connection: delay=20
-    tags: reboot
+        - name: WAITING FOR DEVICE TO BOOT UP
+          wait_for_connection:
+              delay: 10
 
-  - name: add mgmt vrf
-    shell: "net add vrf mgmt && net commit"
-    async: 5
-    poll: 0
+        - name: RESET SUCCESSFUL
+          debug:
+              msg: "RESET SUCCESSFUL"
+          tags: [print_action]
+      when: del_all is changed
+    when: reset == 'y'
 
-  - name: reconnect to switch
-    wait_for_connection:
+  - name: DEVICE IS ALREADY AT DEFAULT CONFIG
+    debug:
+        msg: "DEVICE IS ALREADY AT DEFAULT CONFIG"
+    when: del_all is not changed
+    tags: [print_action]

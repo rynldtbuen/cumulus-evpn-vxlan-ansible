@@ -1,48 +1,52 @@
-- name: generate vlan subnets
-  set_fact:
-    nat_rules: "{{ 'nat_rules' | get_config }}"
+- block:
+    - name: NAT RUNNING CONFIGURATION COMMANDS
+      set_fact:
+        runconfgs: "{{ showconfg['stdout'] | regex_findall('.*nat.*') }}"
 
-- name: show configuration commands| egrep 'set nat'
-  vyos_command:
-    commands:
-        - show configuration commands| egrep 'set nat'
-  register: show
+    #### Change 'intent.yml' file for the intent configurations commands ####
+    - include_tasks: intent.yml
 
-- name: nat running configs
-  set_fact:
-    running_configs: "{{ show.stdout_lines | flatten | reject('equalto', '') | list  }}"
+    - name: AWAITING NAT CONFIGURATION COMMANDS
+      set_fact:
+          config_commands: |
+              {%  set _intentconfgs = intentconfgs.split('\n') |
+                      reject('equalto', '') | list %}
+              {%  for confg in runconfgs if confg not in _intentconfgs %}
+              {{ confg.replace('set', 'delete') }}
+              {%  endfor %}
+              {%  for confg in _intentconfgs if confg not in runconfgs %}
+              {{ confg }}
+              {%  endfor %}
 
-- name: nat intent configs
-  set_fact:
-    intent_configs: |
-      {# Default NAT for oob-mgmt network #}
-      set nat source rule 1 outbound-interface 'eth3'
-      set nat source rule 1 source address '172.24.0.0/24'
-      set nat source rule 1 translation address 'masquerade'
-      set nat source rule 2 outbound-interface 'eth3'
-      set nat source rule 2 source address '10.128.0.0/16'
-      set nat source rule 2 translation address 'masquerade'
-      {# Add NAT rule for VLANs #}
-      {%  for item in nat_rules %}
-      set nat source rule {{ item['rule'] }} outbound-interface 'eth3'
-      set nat source rule {{ item['rule'] }} source address '{{ item['source_address'] }}'
-      set nat source rule {{ item['rule'] }} translation address 'masquerade'
-      {%  endfor %}
+    - block:
+        - name: UPDATE NAT.CONF
+          copy:
+              content: "{{ config_commands }}"
+              dest: "{{ role_path }}/config/{{ inventory_hostname }}-nat.conf"
+          delegate_to: localhost
+          changed_when: false
 
-- name: nat commands
-  set_fact:
-    commands: |
-      {%  set vyos = [] %}
-      {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
-      {%  for item_del in running_configs if item_del not in _intent_configs %}
-      {%      set _item_del = item_del.replace('set ', 'delete ') %}
-      {%      do vyos.append(_item_del | regex_search('\w+.*(?<=rule)\s+\d+')) %}{% endfor %}
-      {%  for item_add in _intent_configs if item_add not in running_configs %}
-      {%      set _item_add = item_add %}
-      {%      do vyos.append(_item_add) %}{% endfor %}
-      {{ vyos | unique }}
+        - name: PUSH NAT INTERFACES CONFIGURATION COMMANDS
+          napalm_install_config:
+            hostname: '{{ inventory_hostname }}'
+            username: '{{ ansible_user }}'
+            dev_os: '{{ ansible_network_os }}'
+            password: '{{ ansible_ssh_pass }}'
+            config_file: "{{ role_path }}/config/{{ inventory_hostname }}-nat.conf"
+            commit_changes: '{{ not ansible_check_mode }}'
+          changed_when: not ansible_check_mode
+          register: result
 
-- name: set/delete nat configs
-  vyos_config:
-    src: nat.j2
-    save: yes
+        - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+          debug:
+              msg: |
+                  {{ result.msg }}
+                  # Set-style configuration commands #
+                  ====================================
+                  {%  for config in config_commands.split('\n') | reject('equalto', '') | list  %}
+                  {{ config }}
+                  {%  endfor %}
+          changed_when: not ansible_check_mode
+          tags: [print_action]
+      when: config_commands != '\n'
+  check_mode: false

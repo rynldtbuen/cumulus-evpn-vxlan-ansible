@@ -1,87 +1,63 @@
-- name: generate host svi variables
+- name: SET SVI VARIABLES
   set_fact:
-    svi: "{{ 'svi' | get_config }}"
+      svi: "{{ 'vlans_interface' | get_config }}"
   run_once: true
 
-- name: net show interface all json
-  nclu:
-    commands:
-      - show interface json
-  register: net_show
-  changed_when: false
+- block:
+    - name: RUNNING SWITCH VLAN INTERFACES
+      set_fact:
+          run_svi_interfaces: "{{ confg_commands['msg'] |
+            regex_findall('(?<=net add vlan )(\\d+)(?= vlan-id.*)') }}"
 
-- name: vlan interfaces running configs (1)
-  set_fact:
-    running_interfaces: "{{ net_show['msg'] }}"
+    - name: NET DEL SVI INTERFACES
+      nclu:
+          template: |
+              {%  set vids = svi[inventory_hostname]['vids'] %}
+              {%  for iface in run_svi_interfaces if iface not in vids %}
+              del vlan {{ iface }}
+              {%  endfor %}
+      register: svi_
 
-- name: net del vlan interfaces
-  nclu:
-    template: |
-      {%  set vifs =  running_interfaces.keys() | select('search', 'vlan') | reject('search', '-v') | list %}
-      {%  for vif in vifs %}
-      {%      set _vif = vif.split('vlan')[1] %}
-      {%      if _vif not in svi[inventory_hostname].keys() %}
-      del vlan {{ _vif }}
-      {%      endif %}
-      {%  endfor %}
-    abort: true
-  register: nclu
-- name: commit changes (1)
-  nclu:
-    commands:
-      - commit
-  when: nclu['changed']
+    - name: SVI RUNNING CONFIGURATION COMMANDS
+      set_fact:
+          runconfgs: |
+              {%  set vids = svi[inventory_hostname]['vids'] %}
+              {%  for iface in run_svi_interfaces if iface not in vids %}
+              {%      do run_svi_interfaces.remove(iface) %}
+              {%  endfor %}
+              {%  set _confg_commands = confg_commands['msg'] |
+                      regex_findall('net add vlan.*') %}
+              {%  set new_runconfgs = [] %}
+              {%  for confg in _confg_commands
+                      if confg | regex_search('(?<=vlan )\d+') in run_svi_interfaces %}
+              {%      do new_runconfgs.append(confg) %}
+              {%  endfor %}
+              {{ new_runconfgs }}
 
-- name: net show configuration commands | egrep 'net add vlan|net add vrf \w+ vni [0-9]'
-  shell: "net show configuration commands | egrep 'net add vlan|net add vrf \\w+ vni [0-9]'"
-  register: _running_configs
-  ignore_errors: true
-  changed_when: false
+    #***** Change 'intent.yml' file for intent configurations commands *****#
+    - include_tasks: intent.yml
 
-- name: vlan interfaces running configs (2)
-  set_fact:
-    running_configs: "{{ _running_configs.stdout_lines | map('trim') | list }}"
+    - name: PUSH SVI INTENT CONFIGURATION COMMANDS
+      nclu:
+          template: |
+              {%  set _intentconfgs = intentconfgs.split('\n') |
+                      reject('equalto', '') | list %}
+              {%  for confg in runconfgs if confg not in _intentconfgs %}
+              {{ confg.replace('net add', 'del') }}
+              {%  endfor %}
+              {%  for confg in _intentconfgs if confg not in runconfgs %}
+              {{ confg.replace('net add', 'add') }}
+              {%  endfor %}
+      register: _svi
 
-- name: vlan interfaces intent configs
-  set_fact:
-    intent_configs: |
-      {% for id, svi in svi[inventory_hostname].items() %}
-      {%    if svi.type == 'l2' %}
-      net add vlan {{ id }} ip address {{ svi.address }}
-      net add vlan {{ id }} ip address-virtual {{ svi.virtual_mac }} {{ svi.virtual_address }}
-      net add vlan {{ id }} vlan-id {{ id }}
-      net add vlan {{ id }} vlan-raw-device bridge
-      net add vlan {{ id }} vrf {{ svi.tenant }}
-      {%    endif %}
-      {%    if svi.type == 'l3' %}
-      net add vlan {{ id }} vlan-id {{ id }}
-      net add vlan {{ id }} vlan-raw-device bridge
-      net add vlan {{ id }} vrf {{ svi.tenant }}
-      net add vrf {{ svi['tenant'] }} vni {{ id }}
-      {%    endif %}
-      {%    if svi.router_mac is defined %}
-      net add vlan {{ id }} hwaddress {{ svi.router_mac }}
-      {%    endif %}
-      {% endfor %}
+    - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+      nclu:
+          commands:
+          - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+      when: svi_ is changed or _svi is changed
+      changed_when: not ansible_check_mode
+      tags: [print_action]
+  when: inventory_hostname in svi
+  check_mode: false
 
-- name: net del/add vlan interfaces
-  nclu:
-    template: |
-      {%  set nclu = [] %}
-      {%  set _intent_configs = intent_configs.split('\n') | reject('equalto', '') | list %}
-      {%  for item_del in running_configs if item_del not in _intent_configs %}
-      {%      set _item_del = item_del.replace('net add', 'del') %}
-      {%      do nclu.append(_item_del) %}{% endfor %}
-      {%  for item_add in _intent_configs if item_add not in running_configs %}
-      {%      set _item_add = item_add.replace('net add', 'add') %}
-      {%      do nclu.append(_item_add) %}{% endfor %}
-      {%  for item in nclu %}
-      {{ item }}
-      {%  endfor %}
-    abort: true
-  register: nclu
-- name: commit changes (2)
-  nclu:
-    commands:
-      - commit
-  when: nclu['changed']
+#net add vrf {{ iface['vrf'] }} vni {{ iface['vni'] }}

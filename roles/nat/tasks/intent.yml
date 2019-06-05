@@ -1,0 +1,13 @@
+- name: NAT INTENT CONFIGURATION COMMANDS
+  set_fact:
+      intentconfgs: |
+          {# Default NAT for oob-mgmt network #}
+          set nat source rule 1 outbound-interface 'eth3'
+          set nat source rule 1 source address '172.24.0.0/24'
+          set nat source rule 1 translation address 'masquerade'
+          set nat source rule 500 outbound-interface 'eth3'
+          set nat source rule 500 source address '172.16.0.0/20'
+          set nat source rule 500 translation address 'masquerade'
+          set nat source rule 501 outbound-interface 'eth3'
+          set nat source rule 501 source address '172.16.16.0/24'
+          set nat source rule 501 translation address 'masquerade'

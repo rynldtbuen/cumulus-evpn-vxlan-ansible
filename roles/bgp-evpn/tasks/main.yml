@@ -1,11 +1,11 @@
-- name: get bgp variables
+- name: SET BGP VARIABLES
   set_fact:
-    bgp: "{{ 'bgp' | get_config }}"
+      bgp_neighbors: "{{ 'bgp_neighbors' | get_config }}"
   run_once: true
 
-- name: get vlans subnet variables
+- name: SET VRF L3VNI VARIABLES
   set_fact:
-    vlans: "{{ ('_vlans_subnet' | get_config).values() | map(attribute='subnet') | list }}"
+      l3vni: "{{ 'l3vni' | get_config }}"
   run_once: true
-
-- include_tasks: "{{ ansible_network_os }}.yml"
+  
+- include_tasks: "{{ ansible_network_os }}/main.yml"
