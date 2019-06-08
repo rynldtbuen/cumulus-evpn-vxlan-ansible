@@ -1,9 +1,11 @@
 - hosts: cumulus
+  gather_facts: no
   tasks:
+
   - name: LOAD SSH KEY FILE
     authorized_key:
       user: "{{ ansible_user }}"
-      key: "{{ lookup('file', '/home/reynold/.ssh/id_rsa.pub') }}"
+      key: "{{ lookup('file', '/home/%s/.ssh/id_rsa.pub' | format(lookup('env', 'USER'))) }}"
       state: present
 
   - name: ADD MGMT VRF

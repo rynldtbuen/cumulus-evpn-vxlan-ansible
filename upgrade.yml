@@ -1,4 +1,4 @@
-- name: UPGRADE TO LATEST DISTRIBUTION
+- name: UPGRADE DEVICE
   hosts: cumulus
   gather_facts: no
   tasks:
