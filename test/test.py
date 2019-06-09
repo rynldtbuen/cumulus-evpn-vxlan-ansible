@@ -1,6 +1,6 @@
 import argparse
 import json
-from cl_vx_config.configvars import ConfigVars
+from cumulus_vxconfig.configvars import ConfigVars
 
 cl = ConfigVars()
 

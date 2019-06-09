@@ -1,4 +1,4 @@
-from cl_vx_config.configvars import ConfigVars
+from cumulus_vxconfig.configvars import ConfigVars
 
 
 class FilterModule:

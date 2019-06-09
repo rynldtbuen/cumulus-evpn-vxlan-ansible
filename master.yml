@@ -86,7 +86,7 @@ base_asn:
   border: 64550
   leaf: 64580
 
-############# STATIC INTERFACES #############
+############# STATIC HOST INTERFACES #############
 ip_interfaces:
     edge01:
       - name: 'eth3'

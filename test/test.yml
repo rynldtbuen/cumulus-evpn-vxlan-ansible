@@ -4,5 +4,5 @@
   tasks:
 
   - set_fact:
-        test_cl_vx_config: "{{ 'loopback_ips' | get_config }}"
+        test_cl_vx_config: "{{ 'nat' | get_config }}"
     tags: [print_action]
