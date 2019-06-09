@@ -89,17 +89,17 @@ base_asn:
 ############# STATIC INTERFACES #############
 ip_interfaces:
     edge01:
-        eth3:
-            address: dhcp
-            ip_nat: outside
-            desc: '-->internet'
-        eth2: # Management interface
-            address: '172.24.0.254/24'
-            desc: '-->oob-mgmt_switch'
-            
+      - name: 'eth3'
+        ip_address: 'dhcp'
+        ip_nat: 'outside'
+        alias: '-->internet'
+      - name: 'eth2' # Management interface
+        ip_address: '172.24.0.254/24'
+        alias: '-->oob-mgmt_switch'
+
 ############# OUT-OF-BAND MANAGEMENT #############
 domain: 'cumulusvxgns3.lab'
-dhcp_range: 172.24.0.50,172.24.0.200
+dhcp_range: '172.24.0.50,172.24.0.200'
 gateway_address: '172.24.0.254'
 dns_server: '172.24.0.10'
 dns_forwarder: '8.8.8.8'
