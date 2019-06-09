@@ -10,8 +10,7 @@ class FilterModule:
         }
 
     def get_config(self, v):
-        configvars = ConfigVars()
-        method = getattr(configvars, v)
+        method = getattr(ConfigVars(), v)
         return method()
 
     def duplicate_items(self, v):

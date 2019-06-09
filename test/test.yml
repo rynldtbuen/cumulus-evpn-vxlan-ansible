@@ -1,8 +1,0 @@
-- name: TEST PLAY
-  hosts: localhost
-  gather_facts: false
-  tasks:
-
-  - set_fact:
-        test_cl_vx_config: "{{ 'nat' | get_config }}"
-    tags: [print_action]

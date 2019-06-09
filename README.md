@@ -10,7 +10,7 @@
     $ ansible-playbook main.yml -t deploy
     ```
   - #### Adding a device to the existing topology
-    - In GNS3 GUI add the device and link below.
+    - In GNS3 GUI add the device and link as stated below.
     ```
     # Fabric link
     leaf05:swp21 to spine01:swp5
