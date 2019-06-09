@@ -1,7 +1,4 @@
 from cl_vx_config.configvars import ConfigVars
-from cl_vx_config.utils.filters import Filters
-
-filter = Filters()
 
 
 class FilterModule:
