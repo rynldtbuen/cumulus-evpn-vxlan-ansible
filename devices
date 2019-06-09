@@ -22,18 +22,18 @@ leaf
 border
 spine
 
-# Default credentials
+# Default credentials change accordingly
 [cumulus:vars]
 ansible_become=true
 ansible_user=cumulus
 ansible_become_pass=CumulusLinux!
 ansible_network_os=cumulus
 
-# Out-of-band management network gatwway
+# Out-of-band management network gateway, change accordingly
 [edge]
 edge01 ansible_host='172.24.0.254'
 
-# Default credentials
+# Default credentials change accordingly
 [edge:vars]
 ansible_ssh_pass=admin
 ansible_user=vyos
