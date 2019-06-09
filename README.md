@@ -1,4 +1,4 @@
-## Ansible Playbook to deploy Cumulus VXLAN EVPN in Symmetric Routing
+## Ansible Playbook to deploy Cumulus EVPN VXLAN in Symmetric Routing
 
 ### 1. Test deployment using GNS3
   - #### Setup
@@ -7,7 +7,7 @@
     - Start `ansible-controller` and `mgmt01` machine and wait to fully boot up after that start all the machine
     - Console to `ansible-controller` and run the commands below to deploy device configurations
     ```
-    $ ansible-playbook deploy
+    $ ansible-playbook main.yml -t deploy
     ```
   - #### Adding a device to the existing topology
     - In GNS3 GUI add the device and link below.
@@ -21,16 +21,8 @@
     leaf05:swp23 to leaf06:swp23
     leaf05:swp24 to leaf06:swp24
     ```
-    - Edit the inventory file named `devices` and add the name and `mgmt_hwaddr` of the added device. The `mgmt_hwaddr` can be found by doing a right click to the device, then Configure>Network>Base MAC.
-    - Run the command below to update and `dnsmasq.conf`.
+    - Edit the inventory file named `devices` and add the name(ex. `leaf05`) and `mgmt_hwaddr` of the added device. The `mgmt_hwaddr` can be found by doing a right click to the device, then Configure>Network>Base MAC.
+    - Run the command below to update the `dnsmasq.conf` and follow the instructions at the end of playbook run.
     ```
     $ ansible-playbook dnsmasq.yml
-    ```
-    - Start the device and run the command below to deploy the ssh-key to the newly added device.
-    ```
-    $ ansible-playbook ssh-key
-    ```
-    - Run the command below to deploy the rest of the configuration
-    ```
-    $ ansible-playbook deploy
     ```

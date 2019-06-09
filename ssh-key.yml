@@ -2,7 +2,22 @@
   gather_facts: no
   tasks:
 
-  - name: LOAD SSH KEY FILE
+  - name: WAITING FOR CONNECTION
+    wait_for_connection:
+        timeout: 4
+    failed_when: false
+    register: _ping
+
+  - name: DEVICE IS UNREACHABLE
+    debug: msg="{{ inventory_hostname }} is unreachable. Make sure the device is boot up"
+    when: _ping['elapsed'] >= 4
+    tags: [print_action]
+
+  - name: WAITING FOR CONNECTION
+    wait_for_connection:
+    when: _ping['elapsed'] >= 4
+
+  - name: DEPLOY SSH KEY
     authorized_key:
       user: "{{ ansible_user }}"
       key: "{{ lookup('file', '/home/%s/.ssh/id_rsa.pub' | format(lookup('env', 'USER'))) }}"
@@ -12,6 +27,7 @@
     shell: "net add vrf mgmt && net commit"
     async: 5
     poll: 0
+    changed_when: false
 
   - name: RECONNECTING TO THE DEVICE
     wait_for_connection:
@@ -19,7 +35,11 @@
   - name: SUCCESS
     debug:
         msg: |
-            Ssh key file was succesfully loaded to {{ inventory_hostname | upper }}
-            *** Run the command below if you want to upgrade the device ***
-            ansible-playbook upgrade.yml -l {{ play_hosts | join(',') }}
+            *** ssh key file was succesfully loaded ***
+            Run the command below if you want to upgrade the device.
+            $ ansible-playbook upgrade.yml -l {{ play_hosts | join(',') }}
+            Or run the command below to deploy the rest of configurations.
+            $ ansible-playbook deply.yml -l {{ play_hosts | join(',') }}
     tags: [print_action]
+    run_once: true
+    delegate_to: localhost

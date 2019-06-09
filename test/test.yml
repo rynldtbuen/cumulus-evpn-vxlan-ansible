@@ -1,0 +1,8 @@
+- name: TEST PLAY
+  hosts: localhost
+  gather_facts: false
+  tasks:
+
+  - set_fact:
+        test_cl_vx_config: "{{ 'loopback_ips' | get_config }}"
+    tags: [print_action]

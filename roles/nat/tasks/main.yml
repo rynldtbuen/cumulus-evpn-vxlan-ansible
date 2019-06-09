@@ -1,3 +1,7 @@
+- name: SET NAT VARIABLES
+  set_fact:
+      nat: "{{ 'nat' | get_config }}"
+
 - block:
     - name: NAT RUNNING CONFIGURATION COMMANDS
       set_fact:
@@ -12,8 +16,13 @@
           config_commands: |
               {%  set _intentconfgs = intentconfgs.split('\n')
                     | reject('equalto', '') | list %}
+              {%  set delete = [] %}
               {%  for confg in runconfgs if confg not in _intentconfgs %}
-              {{ confg.replace('set', 'delete') }}
+              {%      set x = confg.replace('set', 'delete') | regex_search('(.*rule \d+)') %}
+              {%      do delete.append(x) %}
+              {%  endfor %}
+              {%  for item in delete | unique %}
+              {{ item }}
               {%  endfor %}
               {%  for confg in _intentconfgs if confg not in runconfgs %}
               {{ confg }}
@@ -50,4 +59,5 @@
           changed_when: not ansible_check_mode
           tags: [print_action]
       when: config_commands != '\n'
+  when: inventory_hostname in nat
   check_mode: false

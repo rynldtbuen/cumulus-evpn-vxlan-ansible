@@ -27,7 +27,7 @@
           msg: |
               *** Run the command below and provide the device ssh password ***
               *** to load the ssh key file to the device for the first time ***
-              ansible-playbook ssh-key.yml -l {{ inventory_hostname }} --ask-pass
+              'ansible-playbook ssh-key.yml -l {{ inventory_hostname }} --ask-pass'
       when: _ping['elapsed'] >= 3 and _ping['msg'] is search("\\w+@\\w+\:\ Permission denied")
 
     - name: ABORT ALL PENDING CHANGES

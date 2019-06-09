@@ -3,8 +3,44 @@
   gather_facts: false
   tasks:
 
+  - pause:
+        prompt: |
+            Make sure the newly added device in 'devices' file is shut down before proceeding the play.
+            The device must exist in 'dnsmasq.conf' so that it will allow to request an IP address from DHCP Server.
 
   - include_vars: 'master.yml'
+
+  - command: cat /etc/dnsmasq.conf
+    changed_when: false
+    register: cat_output
+
+  - set_fact:
+        mgmt_hwaddr: |
+            {%  set x = [] %}
+            {%  for host in groups['cumulus'] | sort if hostvars[host]['mgmt_hwaddr'] != '' %}
+            {%      do x.append(hostvars[host]['mgmt_hwaddr']) %}
+            {%  endfor %}
+            {{ x | duplicate_items }}
+
+  - fail:
+        msg: |
+            Duplicate mgmt_hwaddr:
+            ======================
+            {% for item in mgmt_hwaddr %}
+            {{ item }}
+            {% endfor %}
+    when: mgmt_hwaddr | length > 0
+
+  - set_fact:
+        new_hosts: |
+            {%  set current_hosts = cat_output['stdout'] | regex_findall('(?<=,)(\\D+.*)') %}
+            {%  set x = [] %}
+            {%  for host in groups['cumulus'] | sort
+                    if hostvars[host]['mgmt_hwaddr'] != ''
+                        and host not in current_hosts %}
+            {%      do x.append(host) %}
+            {%  endfor %}
+            {{ x }}
 
   - name: UPDATE APT CACHE and INSTALL DNSMASQ
     apt:
@@ -13,7 +49,7 @@
         state: latest
     register: dnsmasq_apt
 
-  - name: DNSMASQ.CONF
+  - name: DNSMASQ.CONF TEMPLATE
     set_fact:
         dnsmasq_conf: |
             # Configuration file documentation https://oss.segetech.com/intra/srv/dnsmasq.conf
@@ -26,9 +62,10 @@
             listen-address={{ dns_server }}
             domain={{ domain }}
             dhcp-range={{ dhcp_range }}
+            # oob management network gateway
             dhcp-option=option:router,{{ gateway_address }}
-            {# Set static host #}
-            {% for host in groups['cumulus'] | sort %}
+            # set static host
+            {% for host in groups['cumulus'] | sort if hostvars[host]['mgmt_hwaddr'] != '' %}
             dhcp-host={{ hostvars[host]['mgmt_hwaddr'] }},{{ host }}
             {% endfor %}
             {% for host in groups['edge'] %}
@@ -49,10 +86,18 @@
         systemd:
             name: dnsmasq
             state: restarted
-
-      - name: SUCCESS
-        debug:
-            msg: 'Dnsmasq successfully updated'
-        changed_when: true
-        tags: [print_action]
     when: dnsmasq is changed
+
+  - name: CAT /ETC/DNSMASQ.CONF
+    debug: msg="{{ dnsmasq_conf }}"
+    changed_when: dnsmasq is changed
+    tags: [print_action]
+
+  - name: SUCCESS
+    debug:
+        msg: |
+            *** device was successfully added ***
+            Run the command below to deploy ssh-key to newly added device for the first time.
+            $ ansible-playbook ssh-key.yml -l {{ new_hosts | join(',') }} --ask-pass
+    when: new_hosts | length > 0
+    tags: [print_action]
