@@ -5,10 +5,17 @@
 
   - pause:
         prompt: |
-            Make sure the newly added device in 'devices' file is shut down before proceeding the play.
-            The device must exist in 'dnsmasq.conf' so that it will allow to request an IP address from DHCP Server.
+            Make sure the newly added device in 'devices' ini file is shut down before proceeding the play.
+            The device must exist first in 'dnsmasq.conf' so that it can request an IP address from DHCP Server.
 
   - include_vars: 'master.yml'
+
+    - name: UPDATE APT CACHE and INSTALL DNSMASQ
+      apt:
+          cache_valid_time: 86400
+          name: dnsmasq
+          state: latest
+      register: dnsmasq_apt
 
   - command: cat /etc/dnsmasq.conf
     changed_when: false
@@ -41,13 +48,6 @@
             {%      do x.append(host) %}
             {%  endfor %}
             {{ x }}
-
-  - name: UPDATE APT CACHE and INSTALL DNSMASQ
-    apt:
-        cache_valid_time: 86400
-        name: dnsmasq
-        state: latest
-    register: dnsmasq_apt
 
   - name: DNSMASQ.CONF TEMPLATE
     set_fact:
