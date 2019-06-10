@@ -21,7 +21,8 @@
     changed_when: false
     register: cat_output
 
-  - set_fact:
+  - name: LIST OF MGMT HARDWARE ADDRESS
+    set_fact:
         mgmt_hwaddr: |
             {%  set x = [] %}
             {%  for host in groups['cumulus'] | sort if hostvars[host]['mgmt_hwaddr'] != '' %}
@@ -38,7 +39,8 @@
             {% endfor %}
     when: mgmt_hwaddr | length > 0
 
-  - set_fact:
+  - name: NEW HOSTS
+    set_fact:
         new_hosts: |
             {%  set current_hosts = cat_output['stdout'] | regex_findall('(?<=,)(\\D+.*)') %}
             {%  set x = [] %}
@@ -52,7 +54,7 @@
   - name: DNSMASQ.CONF TEMPLATE
     set_fact:
         dnsmasq_conf: |
-            # Configuration file documentation https://oss.segetech.com/intra/srv/dnsmasq.conf
+            # Configuration file documentation http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html
             domain-needed
             bogus-priv
             no-resolv
@@ -60,16 +62,14 @@
             server={{ dns_forwarder }}
             listen-address=127.0.0.1
             listen-address={{ dns_server }}
+            expand-hosts
             domain={{ domain }}
             dhcp-range={{ dhcp_range }}
-            # oob management network gateway
-            dhcp-option=option:router,{{ gateway_address }}
-            # set static host
+            # DHCP OPTIONS
+            dhcp-option=3,{{ gateway_address }}
+            # STATIC HOST
             {% for host in groups['cumulus'] | sort if hostvars[host]['mgmt_hwaddr'] != '' %}
             dhcp-host={{ hostvars[host]['mgmt_hwaddr'] }},{{ host }}
-            {% endfor %}
-            {% for host in groups['edge'] %}
-            dhcp-host={{ hostvars[host]['ansible_host'] }},{{ host }}
             {% endfor %}
 
   - name: UPDATE DNSMASQ.CONF
@@ -93,7 +93,7 @@
     changed_when: dnsmasq is changed
     tags: [print_action]
 
-  - name: SUCCESS
+  - name: DEBUG
     debug:
         msg: |
             *** device was successfully added ***
