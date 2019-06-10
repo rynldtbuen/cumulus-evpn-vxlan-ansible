@@ -10,12 +10,12 @@
 
   - include_vars: 'master.yml'
 
-    - name: UPDATE APT CACHE and INSTALL DNSMASQ
-      apt:
-          cache_valid_time: 86400
-          name: dnsmasq
-          state: latest
-      register: dnsmasq_apt
+  - name: UPDATE APT CACHE and INSTALL DNSMASQ
+    apt:
+        cache_valid_time: 86400
+        name: dnsmasq
+        state: latest
+    register: dnsmasq_apt
 
   - command: cat /etc/dnsmasq.conf
     changed_when: false
