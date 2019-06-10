@@ -47,7 +47,6 @@ mlag_bonds:
 
 ############# TOPOLOGY LINKS #############
 # Define a point-to-point links between switches
-
 network_links:
   - name: fabric
     links:
