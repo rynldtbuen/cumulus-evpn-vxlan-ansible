@@ -2,6 +2,10 @@
   gather_facts: no
   tasks:
 
+  - pause:
+        prompt: |
+            Make sure that you include '--ask-pass' option when running this playbook.
+
   - name: WAITING FOR CONNECTION
     wait_for_connection:
         timeout: 4
@@ -19,9 +23,9 @@
 
   - name: DEPLOY SSH KEY
     authorized_key:
-      user: "{{ ansible_user }}"
-      key: "{{ lookup('file', '/home/%s/.ssh/id_rsa.pub' | format(lookup('env', 'USER'))) }}"
-      state: present
+        user: "{{ ansible_user }}"
+        key: "{{ lookup('file', '/home/%s/.ssh/id_rsa.pub' | format(lookup('env', 'USER'))) }}"
+        state: present
 
   - name: ADD MGMT VRF
     nclu:
@@ -35,10 +39,9 @@
     wait_for_connection:
         delay: 5
 
-  - name: DEBUG
+  - name: MSG
     debug:
         msg: |
-            *** ssh key file was succesfully loaded ***
             Run the command below if you want to upgrade the device.
             $ ansible-playbook upgrade.yml -l {{ play_hosts | join(',') }}
             Or run the command below to deploy the rest of configurations.

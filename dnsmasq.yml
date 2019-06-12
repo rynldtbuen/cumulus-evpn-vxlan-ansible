@@ -24,32 +24,32 @@
   - name: LIST OF MGMT HARDWARE ADDRESS
     set_fact:
         mgmt_hwaddr: |
-            {%  set x = [] %}
+            {%  set _mgmt_hwaddr = [] %}
             {%  for host in groups['cumulus'] | sort if hostvars[host]['mgmt_hwaddr'] != '' %}
-            {%      do x.append(hostvars[host]['mgmt_hwaddr']) %}
+            {%      do _mgmt_hwaddr.append(hostvars[host]['mgmt_hwaddr']) %}
             {%  endfor %}
-            {{ x | duplicate_items }}
+            {{ _mgmt_hwaddr }}
 
   - fail:
         msg: |
             Duplicate mgmt_hwaddr:
             ======================
-            {% for item in mgmt_hwaddr %}
+            {% for item in mgmt_hwaddr | duplicate_items %}
             {{ item }}
             {% endfor %}
-    when: mgmt_hwaddr | length > 0
+    when: (mgmt_hwaddr | duplicate_items) | length > 0
 
   - name: NEW HOSTS
     set_fact:
         new_hosts: |
             {%  set current_hosts = cat_output['stdout'] | regex_findall('(?<=,)(\\D+.*)') %}
-            {%  set x = [] %}
-            {%  for host in groups['cumulus'] | sort
+            {%  set _new_hosts = [] %}
+            {%  for host in groups['cumulus']
                     if hostvars[host]['mgmt_hwaddr'] != ''
                         and host not in current_hosts %}
-            {%      do x.append(host) %}
+            {%      do _new_hosts.append(host) %}
             {%  endfor %}
-            {{ x }}
+            {{ _new_hosts }}
 
   - name: DNSMASQ.CONF TEMPLATE
     set_fact:
@@ -93,10 +93,9 @@
     changed_when: dnsmasq is changed
     tags: [print_action]
 
-  - name: DEBUG
+  - name: MSG
     debug:
         msg: |
-            *** device was successfully added ***
             Run the command below to deploy ssh-key to newly added device for the first time.
             $ ansible-playbook ssh-key.yml -l {{ new_hosts | join(',') }} --ask-pass
     when: new_hosts | length > 0
