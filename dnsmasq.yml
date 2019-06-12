@@ -10,12 +10,14 @@
 
   - include_vars: 'master.yml'
 
-  - name: UPDATE APT CACHE and INSTALL DNSMASQ
+  - name: INSTALL DNSMASQ and SSHPASS
     apt:
         cache_valid_time: 86400
-        name: dnsmasq
+        name: "{{ item }}"
         state: latest
-    register: dnsmasq_apt
+    loop:
+        - dnsmasq
+        - sshpass
 
   - command: cat /etc/dnsmasq.conf
     changed_when: false
