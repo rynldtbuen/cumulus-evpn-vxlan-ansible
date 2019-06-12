@@ -7,12 +7,6 @@
       ansible_ssh_pass: "{{ ssh_password }}"
   tasks:
 
-  - name: INSTALL SSHPASS
-    apt:
-        cache_valid_time: 86400
-        name: sshpass
-        state: latest
-
   - name: WAITING FOR CONNECTION
     wait_for_connection:
         timeout: 4
