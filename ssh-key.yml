@@ -1,10 +1,17 @@
 - hosts: cumulus
   gather_facts: no
+  vars_prompt:
+      name: ssh_password
+      prompt: "SSH password"
+  vars:
+      ansible_ssh_pass: "{{ ssh_password }}"
   tasks:
 
-  - pause:
-        prompt: |
-            Make sure that you include '--ask-pass' option when running this playbook.
+  - name: INSTALL SSHPASS
+    apt:
+        cache_valid_time: 86400
+        name: sshpass
+        state: latest
 
   - name: WAITING FOR CONNECTION
     wait_for_connection:
