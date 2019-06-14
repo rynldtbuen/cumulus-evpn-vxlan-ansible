@@ -101,10 +101,10 @@ ip_interfaces:
       - name: 'eth3'
         ip_address: 'dhcp'
         ip_nat: 'outside'
-        alias: '-->internet'
+        alias: 'internet'
       - name: 'eth2' # Management interface
         ip_address: '172.24.0.254/24'
-        alias: '-->oob-mgmt_switch'
+        alias: 'oob-management-gateway'
 
 ############# OUT-OF-BAND MANAGEMENT #############
 domain: 'cumulusvxgns3.lab'

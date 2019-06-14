@@ -23,6 +23,18 @@
     changed_when: false
     register: cat_output
 
+  - name: STATIC HOST
+    set_fact:
+        static_hosts: |
+            {%  for host in groups['all'] if hostvars[host]['ansible_host'] is defined %}
+            {{ host }} {{ hostvars[host]['ansible_host'] }}
+            {%  endfor %}
+
+  - name: UPDATE ANS_STATIC_HOSTS.CONF
+    copy:
+        content: '{{ static_hosts }}'
+        dest: '/etc/ansible_static_hosts'
+
   - name: LIST OF MGMT HARDWARE ADDRESS
     set_fact:
         mgmt_hwaddr: |
@@ -64,6 +76,7 @@
             server={{ dns_forwarder }}
             listen-address=127.0.0.1
             listen-address={{ dns_server }}
+            addn-hosts=/etc/ansible_static_hosts
             expand-hosts
             domain={{ domain }}
             dhcp-range={{ dhcp_range }}
