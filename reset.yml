@@ -4,7 +4,7 @@
   vars_prompt:
       - name: reset
         prompt: "Delete all configurations? [y/n]"
-        default: 'y'
+        default: 'n'
         private: no
   tasks:
   - block:

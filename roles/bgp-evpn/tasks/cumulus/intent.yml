@@ -13,8 +13,8 @@
           net add bgp neighbor {{ peer_group }} capability extended-nexthop
           net add bgp l2vpn evpn  neighbor {{ peer_group }} activate
           {%  endfor %}
-          {%  for v in default['neighbors'] %}
-          net add bgp neighbor {{ v['neighbor'] }} interface peer-group {{ v['peer_group'] }}
+          {%  for item in default['neighbors'] %}
+          net add bgp neighbor {{ item['neighbor'] }} interface peer-group {{ item['peer_group'] }}
           {%  endfor %}
           {#  ADVERTISE VNI #}
           {%  if inventory_hostname not in groups['spine'] %}
@@ -34,7 +34,7 @@
           net add bgp ipv4 unicast redistribute connected route-map LOOPBACK_ROUTES
           {# VRF to Layer 3 VNI Mapping #}
           {%  if inventory_hostname in l3vni %}
-          {%  for vrf, vni in l3vni[inventory_hostname].items() %}
+          {%      for vrf, vni in l3vni[inventory_hostname].items() %}
           net add vrf {{ vrf }} vni {{ vni }}
-          {%  endfor %}
+          {%      endfor %}
           {%  endif %}

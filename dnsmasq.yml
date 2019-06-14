@@ -95,10 +95,10 @@
     changed_when: dnsmasq is changed
     tags: [print_action]
 
-  - name: MSG
+  - name: DEVICES SUCCESSFULLY ADDED
     debug:
         msg: |
-            Run the command below to deploy ssh-key to newly added device for the first time.
-            $ ansible-playbook ssh-key.yml -l {{ new_hosts | join(',') }} --ask-pass
+            Run the command below to deploy ssh key to newly added device for the first time.
+            $ ansible-playbook ssh-key.yml -l {{ new_hosts | join(',') }}
     when: new_hosts | length > 0
     tags: [print_action]

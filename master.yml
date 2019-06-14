@@ -1,18 +1,24 @@
-# A master file that hold a configurations to deploy Cumulus VXLAN EVPN
+# A master file that hold a configuration variables that being use by
+# https://github.com/rynldtbuen/cumulus-vxconfig script to deploy Cumulus EVPN VXLAN in Symmetric Routing
 
 ############# VLANS #############
 # Examples:
-# # Generate a VLAN network/prefix with a prefixlen of 20
+# Dynamically generate a CIDR with a prefix length of 20 for VLAN 500
 # - id: '500'
 #   name: 'vlan500'
 #   prefixlen: 20
-# # Manually assign a network/prefix
+# Statically assign a CIDR for VLAN 501
 # - id: '501'
 #   name: 'vlan501'
 #   network_prefix: 10.0.0.0/24
-# #
+# Dynamically generate a CIDR with a default prefix length for 24 for VLAN 502
 # - id: '502'
-#   name: 'vlan502'
+#   name: 'vlan503'
+# Allow source NAT for VLAN 501
+# - id: '503'
+#   name: 'vlan503'
+#   allow_nat: true
+# The script will dynamically generate a L3VNI per tenant
 vlans:
     tenant01:
       - id: '500'
@@ -24,16 +30,17 @@ vlans:
         prefixlen: 24
 
 ############# MLAG #############
-# Define a peerlink interfaces required by mlag.
-# The interfaces will be the same for each mlag pair switch
+# Define a peerlink interfaces require by MLAG.
+# The interfaces will be the same on per switch in MLAG pair
 mlag_peerlink_interfaces: 'swp23-24'
 
 # Define a dual-connected server. Switch 'leaf01' and 'leaf02' is a mlag pair named 'rack01' and so on.
-# Bond members(slaves) will be the same on each mlag pair switch
+# Bond members(slaves) will be the same on per switch in MLAG pair
+# Documentation: https://docs.cumulusnetworks.com/display/DOCS/Multi-Chassis+Link+Aggregation+-+MLAG
 mlag_bonds:
     rack01: # leaf01, leaf02
       - name: 'control01'
-        members: 'swp1'
+        members: 'swp23'
         vids: '500-501'
     rack02: # leaf03, leaf04
       - name: 'compute01'
@@ -44,27 +51,27 @@ mlag_bonds:
         members: 'swp2'
         vids: '500-501'
 
-
 ############# TOPOLOGY LINKS #############
-# Define a point-to-point links between switches
+# Define a point-to-point links between devices
 network_links:
-  - name: fabric
-    links:
-      - 'spine:swp1 -- leaf:swp21'
-      - 'spine:swp23 -- border:swp23'
-    interface_type: unnumbered
-  - name: external_connectivity
-    links:
-      - 'edge:eth0 -- border:swp1'
-    interface_type: sub_interface
+    fabric:
+        links:
+          - 'spine:swp1 -- leaf:swp21'
+          - 'spine:swp23 -- border:swp23'
+        interface_type: unnumbered
+    external_connectivity:
+        links:
+          - 'edge:eth0 -- border:swp1'
+        interface_type: sub_interface
 
 ############# BASE NETWORKS ###############
-# Change according to your topology
-# loopbacks: # use to generete loopback ip of the device.
-#   "name_of_ansible_group": "network/prefix"
-# vxlan_anycast: # use to generate vtep address in mlag(active-active) deployments.
-# vlans: use to generate vlans subnet if 'subnet' attribute is not defined in 'vlans' variables.
-# external_connectivity: use to generate point-to-point network /30 prefix, typically between router and edge device.
+# loopbacks: Use to automatically generate loopback IP of the device. The host IP is determine by the device node ID.
+#            Example given the loopback base network of group spine, spine01 will have an IP of 192.168.0.1/32.
+#            Variable mapping, "name_of_ansible_group": "network/prefix"
+# vxlan_anycast: Use to automatically generate a VTEP IP address in VXLAN active-active deployments.
+#                Documentation: https://docs.cumulusnetworks.com/display/DOCS/VXLAN+Active-Active+Mode.
+# vlans: Use to automatically generate a VLAN CIDR if 'network/prefix' or 'prefixlen' attribute is not defined in 'vlans' variables.
+# external_connectivity: Use to dynamically generate point-to-point network /30 prefix, typically between border and edge device.
 base_networks:
   loopbacks:
       spine: '192.168.0.0/25'
@@ -77,15 +84,18 @@ base_networks:
   oob_management: '172.24.0.0/24'
 
 ############# BASE BGP AS #############
-# Change according to your topology
-# "name_of_ansible_group": "base_private_asn"
+# The script is build to automatically generate a BGP AS in tier 2 CLOS topology. Not tested in multi-pod or tier 3 topology
+# The BGP AS number is determine by the device node ID except for spine which will have the same BGP AS number per device.
+# Example given the base BGP AS number of group leaf, leaf01 will have a BGP AS number of 64580
+# Variable mapping, "name_of_ansible_group": "base_private_asn"
 base_asn:
   spine: 64512
   edge: 64530
   border: 64550
   leaf: 64580
 
-############# STATIC HOST INTERFACES #############
+############# STATIC INTERFACES #############
+# Define a static interfaces
 ip_interfaces:
     edge01:
       - name: 'eth3'

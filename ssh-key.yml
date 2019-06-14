@@ -2,7 +2,7 @@
   gather_facts: no
   vars_prompt:
       name: ssh_password
-      prompt: "SSH password"
+      prompt: "SSH PASSWORD"
   vars:
       ansible_ssh_pass: "{{ ssh_password }}"
   tasks:
@@ -15,8 +15,8 @@
 
   - name: DEVICE IS UNREACHABLE
     debug: msg="{{ inventory_hostname }} is unreachable. Make sure the device is boot up"
-    when: _ping['elapsed'] >= 4
-    tags: [print_action]
+    failed_when: _ping['elapsed'] >= 4
+    ignore_errors: true
 
   - name: WAITING FOR CONNECTION
     wait_for_connection:
@@ -27,6 +27,7 @@
         user: "{{ ansible_user }}"
         key: "{{ lookup('file', '/home/%s/.ssh/id_rsa.pub' | format(lookup('env', 'USER'))) }}"
         state: present
+    register: ssh_key
 
   - name: ADD MGMT VRF
     nclu:
@@ -35,18 +36,20 @@
         commit: true
     async: 5
     poll: 0
+    changed_when: false
 
   - name: RECONNECTING TO THE DEVICE
     wait_for_connection:
         delay: 5
 
-  - name: MSG
+  - name: SSH KEY SUCCESSFULLY DEPLOYED
     debug:
         msg: |
             Run the command below if you want to upgrade the device.
             $ ansible-playbook upgrade.yml -l {{ play_hosts | join(',') }}
             Or run the command below to deploy the rest of configurations.
             $ ansible-playbook deploy.yml -l {{ play_hosts | join(',') }}
+    when: ssh_key is changed
     tags: [print_action]
     run_once: true
     delegate_to: localhost

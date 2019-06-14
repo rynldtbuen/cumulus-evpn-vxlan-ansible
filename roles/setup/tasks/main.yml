@@ -1,1 +1,6 @@
+- name: CHECK INTERFACES
+  set_fact:
+      check_interfaces: "{{ 'dummy' | get_config }}"
+  run_once: true
+
 - include_tasks: "{{ ansible_network_os }}/main.yml"

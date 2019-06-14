@@ -22,7 +22,7 @@
 
   - name: UPGRADING DEVICE
     debug:
-        msg: "Do not interrupt the upgrade might take a while"
+        msg: "Do not interrupt. The upgrade might take a while"
     tags: [print_action]
 
   - name: UPGRADE DEVICE DISTRIBUTION
