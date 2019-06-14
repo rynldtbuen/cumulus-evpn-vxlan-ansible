@@ -9,18 +9,72 @@
     $ ansible-playbook deploy.yml
     ```
   - #### Adding a devices to the existing topology
-    - In GNS3 GUI add CumulusVX switch, rename the switch correspond to name below and add the link.
-    ```
-    # Fabric link
-    leaf05:swp21 to spine01:swp5
-    leaf05:swp22 to spine02:swp5
-    leaf06:swp21 to spine01:swp6
-    leaf06:swp22 to spine02:swp6
-    # MLAG Peerlink
-    leaf05:swp23 to leaf06:swp23
-    leaf05:swp24 to leaf06:swp24
-    ```
-    - Edit the inventory file named `devices` and add the the device in the correct group in this example under `leaf` group. Add the `mgmt_hwaddr` variable of the added device. The `mgmt_hwaddr` can be found by doing a right click on the device, then Configure>Network>Base MAC.
+    In GNS3 GUI add a CumulusVX appliance. For this setup example we will add an addtiontional leaf named `leaf05` and `leaf06`.
+
+    - Edit the inventory file named `devices` and add the the device in the correct group in this example under `leaf` group. Add the `mgmt_hwaddr` variable of the added device. The `mgmt_hwaddr` can be found by doing a right click on the device in GNS3 GUI, then Configure>Network>Base MAC.
+
+    - Refer to the `master.yml` and we follow some of the variables needed to successfully connect the device to the existing topology.
+      ```
+      ---
+      mlag_peerlink_interfaces: swp23-24
+
+      network_links:
+          fabric:
+              links:
+                - 'spine:swp1 -- leaf:swp21'
+                - 'spine:swp23 -- border:swp23'
+              interface_type: unnumbered
+      ```
+      Base on the variable above add the link below in GNS3 GUI.
+      ```
+      # MLAG Peerlink
+      leaf05:swp23 to leaf06:swp23
+      leaf05:swp24 to leaf06:swp24
+
+      # Fabric link
+      leaf05:swp21 to spine01:swp5
+      leaf05:swp22 to spine02:swp5
+      leaf06:swp21 to spine01:swp6
+      leaf06:swp22 to spine02:swp6
+      ```
+      A little explaination about the `network_links` variable.
+      The [script](https://github.com/rynldtbuen/cumulus-vxconfig) will automatically generate a list of individual link base on the links format given. The link has a string format of :
+      ```
+      "ansible_group/ansible_hostname:starting_port -- ansible_group/ansible_hostname:starting_port"
+      ```
+      In this example the script will generate a list of links of `fabric` of:
+      ```
+      "spine01:swp1 -- leaf01:swp21",
+      "spine01:swp2 -- leaf02:swp21",
+      "spine01:swp3 -- leaf03:swp21",
+      "spine01:swp4 -- leaf04:swp21",
+      "spine01:swp5 -- leaf05:swp21",
+      "spine01:swp6 -- leaf06:swp21",
+      "spine01:swp23 -- border01:swp23",
+      "spine01:swp24 -- border02:swp23",
+      "spine02:swp1 -- leaf01:swp22",
+      "spine02:swp2 -- leaf02:swp22",
+      "spine02:swp3 -- leaf03:swp22",
+      "spine02:swp4 -- leaf04:swp22",
+      "spine02:swp5 -- leaf05:swp22",
+      "spine02:swp6 -- leaf06:swp22"
+      "spine02:swp23 -- border01:swp24",
+      "spine02:swp24 -- border02:swp24",
+      ```
+      The script will look for number for hosts if it found a `ansible_group` in the link format, then it automatically increament the starting port base on how many hosts has link to.
+
+      More examples:
+      ```
+      # Define a combination of automatic and spicific link
+      # Link "spine:swp10 -- leaf05:swp15" will generate a list of links of:
+      "spine01:swp10 -- leaf05:swp15",
+      "spine02:swp10 -- leaf05:swp16"
+
+      # Define a specific link
+      # Link 'spine01:swp20 -- leaf06:swp20' will generate a list of links of:
+      "spine01:swp20 -- leaf06:swp20"
+      ```
+
     - Run the command below to update the `dnsmasq.conf` and follow the instructions at the end of playbook run.
     ```
     $ ansible-playbook dnsmasq.yml

@@ -2,6 +2,9 @@
 # https://github.com/rynldtbuen/cumulus-vxconfig script to deploy Cumulus EVPN VXLAN in Symmetric Routing
 
 ############# VLANS #############
+# Define a tenant in VLAN which is require in Cumulus EVPN VXLAN deployment
+# The script will Automatically generate a L3VNI per tenant
+
 # Examples:
 # Automatically generate a CIDR with a prefix length of 20 for VLAN 500
 # - id: '500'
@@ -18,7 +21,6 @@
 # - id: '503'
 #   name: 'vlan503'
 #   allow_nat: true
-# The script will dynamically generate a L3VNI per tenant
 vlans:
     tenant01:
       - id: '500'
@@ -27,26 +29,37 @@ vlans:
         allow_nat: true
       - id: '501'
         name: 'vlan501'
-        prefixlen: 24
 
 ############# MLAG #############
 # Define a peerlink interfaces require by MLAG.
-# The interfaces will be the same on per switch in MLAG pair
+# The interfaces will be the same in all switch (leaf or top-of-rack where servers is attach) in MLAG pair
+# As of now it's not possible to define a different peerlink interfaces per switch or per MLAG pair
 mlag_peerlink_interfaces: 'swp23-24'
 
-# Define a dual-connected server. Switch 'leaf01' and 'leaf02' is a mlag pair named 'rack01' and so on.
-# Bond members(slaves) will be the same on per switch in MLAG pair
+# Define a bond facing a dual-connected server. Switch leaf01 and leaf02 is a MLAG pair named 'rack01' and so on.
+# Bond members(slaves) will be the same on per MLAG pair.
+# Examples:
+# Configure leaf01 and leaf02 a bond named control01 with a bond slaves of swp1 and bond-mode as trunk
+#   rack01:
+#     - name: 'control01'
+#       members: 'swp1'
+#       vids: '500-501'
+# Configure leaf03 and leaf04 a bond named control02 with a bond slaves of swp10 and bond-mode as access
+#   rack02:
+#     - name: 'control02'
+#       members: 'swp10'
+#       vids: '500'
 # Documentation: https://docs.cumulusnetworks.com/display/DOCS/Multi-Chassis+Link+Aggregation+-+MLAG
 mlag_bonds:
-    rack01: # leaf01, leaf02
+    rack01:
       - name: 'control01'
         members: 'swp1'
         vids: '500-501'
-    rack02: # leaf03, leaf04
+    rack02:
       - name: 'compute01'
         members: 'swp1'
         vids: '500-501'
-    rack03: # leaf05, leaf06
+    rack03:
       - name: 'compute02'
         members: 'swp2'
         vids: '500-501'

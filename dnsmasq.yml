@@ -30,7 +30,7 @@
             {{ host }} {{ hostvars[host]['ansible_host'] }}
             {%  endfor %}
 
-  - name: UPDATE ANS_STATIC_HOSTS.CONF
+  - name: UPDATE ANSIBLE_STATIC_HOSTS
     copy:
         content: '{{ static_hosts }}'
         dest: '/etc/ansible_static_hosts'
