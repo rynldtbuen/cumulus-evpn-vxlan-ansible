@@ -3,7 +3,7 @@
 
 ############# VLANS #############
 # Examples:
-# Dynamically generate a CIDR with a prefix length of 20 for VLAN 500
+# Automatically generate a CIDR with a prefix length of 20 for VLAN 500
 # - id: '500'
 #   name: 'vlan500'
 #   prefixlen: 20
@@ -11,7 +11,7 @@
 # - id: '501'
 #   name: 'vlan501'
 #   network_prefix: 10.0.0.0/24
-# Dynamically generate a CIDR with a default prefix length for 24 for VLAN 502
+# Automatically generate a CIDR with a default prefix length for 24 for VLAN 502
 # - id: '502'
 #   name: 'vlan503'
 # Allow source NAT for VLAN 501
@@ -40,7 +40,7 @@ mlag_peerlink_interfaces: 'swp23-24'
 mlag_bonds:
     rack01: # leaf01, leaf02
       - name: 'control01'
-        members: 'swp23'
+        members: 'swp1'
         vids: '500-501'
     rack02: # leaf03, leaf04
       - name: 'compute01'
