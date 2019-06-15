@@ -1,4 +1,4 @@
-localhost ansible_connection=local ansible_become=true ansible_become_pass=admin
+localhost ansible_connection=local ansible_become=true ansible_become_pass=admin ansible_python_interpreter=/usr/bin/python3
 
 # The 'mgmt_hwaddr' variable is the hardware address of interface connected to oob management network
 [leaf]
@@ -33,16 +33,17 @@ ansible_network_os=cumulus
 
 # Out-of-band management network gateway. Change accordingly to your topology
 [edge]
-edge01 ansible_host='172.24.0.254'
+edge01 ansible_host=172.24.0.254
 
 # Default credentials. Change accordingly to your topology
 # Use Ansible Single Encrypted Variable to encrypt password variables
 # https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable Ansible-Vault
+[edge:vars]
 ansible_ssh_pass=admin
 ansible_user=vyos
 ansible_network_os=vyos
 ansible_connection=network_cli
-ansible_python_interpreter="/usr/bin/env python3"
+ansible_python_interpreter=/usr/bin/env python3
 
 [network_device:children]
 leaf

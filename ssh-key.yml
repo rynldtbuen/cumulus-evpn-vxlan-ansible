@@ -42,14 +42,15 @@
     wait_for_connection:
         delay: 5
 
-  - name: SSH KEY SUCCESSFULLY DEPLOYED
-    debug:
+  - debug:
         msg: |
             Run the command below if you want to upgrade the device.
             $ ansible-playbook upgrade.yml -l {{ play_hosts | join(',') }}
             Or run the command below to deploy the rest of configurations.
             $ ansible-playbook deploy.yml -l {{ play_hosts | join(',') }}
-    when: ssh_key is changed
+            Or pass a option '-C' to check for pending changes
+            $ ansible-playbook deploy.yml -l {{ play_hosts | join(',') }} -C
+    changed_when: ssh_key is changed
     tags: [print_action]
     run_once: true
     delegate_to: localhost

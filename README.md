@@ -2,7 +2,7 @@
 *Note that the following steps require to have a knowledge on how to use GNS3*
   - #### Setup
     - Download and install [GNS3](https://www.gns3.com/software)
-    - Download the import [GNS3 LAB]
+    - Download and import [GNS3 LAB]
     - Start `mgmt-server01, mgmt-switch01` and `edge01` machine and wait to fully boot up, after that start all the machine
     - Console to `mgmt-server01` and run the commands below to deploy devices configurations
     ```
@@ -38,11 +38,11 @@
       leaf06:swp22 to spine02:swp6
       ```
       A little explaination about the `network_links` variable.
-      The [script](https://github.com/rynldtbuen/cumulus-vxconfig) will automatically generate a list of individual link base on the links format given. The link has a string format of :
+      The [script](https://github.com/rynldtbuen/cumulus-vxconfig) will automatically generate a list of individual host link base on the link format given. The link is a string that follow a format of:
       ```
       "ansible_group/ansible_hostname:starting_port -- ansible_group/ansible_hostname:starting_port"
       ```
-      In this example the script will generate a list of links of `fabric` of:
+      So in this example the script will generate a list of individual host `fabric` link of:
       ```
       "spine01:swp1 -- leaf01:swp21",
       "spine01:swp2 -- leaf02:swp21",
@@ -61,17 +61,24 @@
       "spine02:swp23 -- border01:swp24",
       "spine02:swp24 -- border02:swp24",
       ```
-      The script will look for number for hosts if it found a `ansible_group` in the link format, then it automatically increament the starting port base on how many hosts has link to.
+      The script will look for number of hosts if it found a `ansible_group` in the link format, then it automatically increament the starting port base on how many hosts has link to.
 
       More examples:
       ```
-      # Define a combination of automatic and spicific link
-      # Link "spine:swp10 -- leaf05:swp15" will generate a list of links of:
+      # Define a group link
+      # Link "spine:swp23 -- border:swp23" will generate a list of individual host links of:
+      "spine01:swp23 -- border01:swp23",
+      "spine01:swp24 -- border02:swp23",
+      "spine02:swp23 -- border01:swp24",
+      "spine02:swp24 -- border02:swp24"
+
+      # Define a combination of group and host link
+      # Link "spine:swp10 -- leaf05:swp15" will generate a list of individual host links of:
       "spine01:swp10 -- leaf05:swp15",
       "spine02:swp10 -- leaf05:swp16"
 
-      # Define a specific link
-      # Link 'spine01:swp20 -- leaf06:swp20' will generate a list of links of:
+      # Define a host link
+      # Link 'spine01:swp20 -- leaf06:swp20' will generate a list of individual host links of:
       "spine01:swp20 -- leaf06:swp20"
       ```
 

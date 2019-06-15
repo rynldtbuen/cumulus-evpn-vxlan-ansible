@@ -23,17 +23,18 @@
     changed_when: false
     register: cat_output
 
-  - name: STATIC HOST
+  - name: DNSMASQ ADDITIONAL HOSTS
     set_fact:
-        static_hosts: |
+        dnsmasq_addn_hosts: |
             {%  for host in groups['all'] if hostvars[host]['ansible_host'] is defined %}
-            {{ host }} {{ hostvars[host]['ansible_host'] }}
+            {{ hostvars[host]['ansible_host'] }} {{ host }}
             {%  endfor %}
 
-  - name: UPDATE ANSIBLE_STATIC_HOSTS
+  - name: UPDATE DNSMASQ_ADDN_HOSTS
     copy:
-        content: '{{ static_hosts }}'
-        dest: '/etc/ansible_static_hosts'
+        content: '{{ dnsmasq_addn_hosts }}'
+        dest: '/etc/dnsmasq_addn_hosts'
+    register: addn_hosts
 
   - name: LIST OF MGMT HARDWARE ADDRESS
     set_fact:
@@ -82,7 +83,7 @@
             dhcp-range={{ dhcp_range }}
             # DHCP OPTIONS
             dhcp-option=3,{{ gateway_address }}
-            # STATIC HOST
+            # DHCP STATIC HOST
             {% for host in groups['cumulus'] | sort if hostvars[host]['mgmt_hwaddr'] != '' %}
             dhcp-host={{ hostvars[host]['mgmt_hwaddr'] }},{{ host }}
             {% endfor %}
@@ -103,15 +104,14 @@
             state: restarted
     when: dnsmasq is changed
 
-  - name: CAT /ETC/DNSMASQ.CONF
-    debug: msg="{{ dnsmasq_conf }}"
-    changed_when: dnsmasq is changed
-    tags: [print_action]
-
-  - name: DEVICES SUCCESSFULLY ADDED
-    debug:
+  - debug:
         msg: |
-            Run the command below to deploy ssh key to newly added device for the first time.
+            {{ dnsmasq_conf }}
+            # Dnsmasq addtional hosts file /etc/dnsmasq_addn_hosts
+            {{ dnsmasq_addn_hosts }}
+            {% if new_hosts | length > 0 -%}
+            # Run the command below to deploy ssh key to newly added device for the first time.
             $ ansible-playbook ssh-key.yml -l {{ new_hosts | join(',') }}
-    when: new_hosts | length > 0
+            {% endif -%}
+    changed_when: dnsmasq is changed or addn_host is changed
     tags: [print_action]
