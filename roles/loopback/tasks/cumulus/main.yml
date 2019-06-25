@@ -27,5 +27,4 @@
       when: loopback_ips_ is changed
       changed_when: not ansible_check_mode
       tags: [print_action]
-  when: inventory_hostname in loopback_ips
   check_mode: false

@@ -1,0 +1,78 @@
+# This play is only use to deploy newly added or change devices and it is imported by the deploy.yml.
+# Use the configs.yml to deploy additional configurations to the hosts that was already provisioned.
+
+- name: PROVISION
+  hosts: "{{ hostvars['localhost']['new_hosts'] }}"
+  gather_facts: no
+  vars:
+      ansible_ssh_pass: "{{ default_pass }}"
+  pre_tasks:
+      - wait_for_connection:
+            timeout: 30
+        register: _ping
+        ignore_errors: true
+
+      - name: REMOVE OLD SSH KEY
+        command: "{{ _ping['msg'] | regex_search('ssh-keygen.*') }}"
+        delegate_to: localhost
+        register: remove_old_ssh_key
+        when: _ping is failed and _ping['msg'] is search('ssh-keygen.*')
+
+      - fail:
+            msg: |
+                device is unreachable (mgmt_hwaddr={{ mgmt_hwaddr }}).
+                Make sure the device has the correct mgmt_hwaddr variable in inventory file also check if it was started
+        when: _ping is failed and (
+          _ping['msg'] is search('No route to host') or
+          _ping['msg'] is search('Connection timed out') or
+          _ping['msg'] is search('Temporary failure in name resolution')
+          )
+
+  roles:
+      - role: setup
+        when: inventory_hostname in groups['network_device']
+      - role: loopback
+        when: inventory_hostname in groups['network_device']
+      - role: mlag-peerlink
+        when: inventory_hostname in groups['network_device']
+      - role: mlag-bonds
+        when: inventory_hostname in groups['network_device']
+      - role: vxlan
+        when: inventory_hostname in groups['network_device']
+      - role: svi
+        when: inventory_hostname in groups['network_device']
+      - role: ip-interfaces
+        when: inventory_hostname in groups['network_device']
+      - role: route-maps
+        when: inventory_hostname in groups['network_device']
+      - role: bgp-evpn
+        when: inventory_hostname in groups['network_device']
+      - role: nat
+        when: inventory_hostname in groups['network_device']
+      - role: server-interfaces
+        when: inventory_hostname in groups['server']
+
+  post_tasks:
+      - debug: msg="Rebooting"
+        tags: [print_action]
+
+      # - reboot:
+
+      - name: DEPLOY SSH KEY
+        authorized_key:
+            user: "{{ ansible_user }}"
+            key: "{{ lookup('file', '/home/%s/.ssh/id_rsa.pub' | format(lookup('env', 'USER'))) }}"
+            state: present
+        register: ssh_key
+
+      - name: ADD MGMT VRF
+        nclu:
+            commands:
+            - add vrf mgmt
+            commit: true
+        async: 5
+        poll: 0
+        when: inventory_hostname in groups['cumulus']
+        changed_when: false
+
+      - set_fact: deployed="{{ true }}"

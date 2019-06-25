@@ -2,12 +2,14 @@ localhost ansible_connection=local ansible_become=true ansible_become_pass=admin
 
 # The 'mgmt_hwaddr' variable is the hardware address of interface connected to oob management network
 [leaf]
-leaf01 mgmt_hwaddr=''
-leaf02 mgmt_hwaddr=''
-leaf03 mgmt_hwaddr=''
-leaf04 mgmt_hwaddr=''
-#leaf05 mgmt_hwaddr=''
-#leaf06 mgmt_hwaddr=''
+leaf1 mgmt_hwaddr=''
+leaf2 mgmt_hwaddr=''
+leaf3 mgmt_hwaddr=''
+leaf4 mgmt_hwaddr=''
+leaf5 mgmt_hwaddr=''
+leaf6 mgmt_hwaddr=''
+leaf7 mgmt_hwaddr=''
+leaf8 mgmt_hwaddr=''
 
 [border]
 border01 mgmt_hwaddr=''
@@ -22,10 +24,13 @@ leaf
 border
 spine
 
-# Default credentials. Change accordingly to your topology
-# Use Ansible Single Encrypted Variable to encrypt password variables
+# Default credentials. Change according to your topology
+# default_pass is require to automatically provision the newly added device otherwise you need the
+# to add the '-k or --ask-pass' option when running the deploy.yml playbook
+# Use Ansible Single Encrypted Variable to encrypt password variables like ansible_become_pass
 # https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable Ansible-Vault
 [cumulus:vars]
+default_pass=CumulusLinux!
 ansible_become=true
 ansible_user=cumulus
 ansible_become_pass=CumulusLinux!
@@ -35,7 +40,7 @@ ansible_network_os=cumulus
 [edge]
 edge01 ansible_host=172.24.0.254
 
-# Default credentials. Change accordingly to your topology
+# Default credentials. Change according to your topology
 # Use Ansible Single Encrypted Variable to encrypt password variables
 # https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable Ansible-Vault
 [edge:vars]
@@ -50,3 +55,17 @@ leaf
 border
 spine
 edge
+
+[server]
+server01 mgmt_hwaddr=''
+server02 mgmt_hwaddr=''
+
+# Default credentials. Change according to your topology
+# Use Ansible Single Encrypted Variable to encrypt password variables
+# https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable Ansible-Vault
+[server:vars]
+default_pass=ubuntu
+ansible_become=true
+ansible_user=ubuntu
+ansible_become_pass=ubuntu
+ansible_python_interpreter=/usr/bin/env python3

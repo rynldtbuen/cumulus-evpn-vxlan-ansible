@@ -2,7 +2,7 @@
 # https://github.com/rynldtbuen/cumulus-vxconfig script to deploy Cumulus EVPN VXLAN in Symmetric Routing
 
 ############# VLANS #############
-# Define a tenant in VLAN which is require in Cumulus EVPN VXLAN deployment
+# Define a tenant VLANs
 # The script will Automatically generate a L3VNI per tenant
 
 # Examples:
@@ -32,37 +32,42 @@ vlans:
 
 ############# MLAG #############
 # Define a peerlink interfaces require by MLAG.
-# The interfaces will be the same in all switch (leaf or top-of-rack where servers is attach) in MLAG pair
+# The interfaces will be the same in all switch (top-of-rack where servers is attach) in MLAG pair
 # As of now it's not possible to define a different peerlink interfaces per switch or per MLAG pair
 mlag_peerlink_interfaces: 'swp23-24'
 
-# Define a bond facing a dual-connected server. Switch leaf01 and leaf02 is a MLAG pair named 'rack01' and so on.
-# Bond members(slaves) will be the same on per MLAG pair.
+# Define a bond link to a dual-connected server. Switch leaf01 and leaf02 is a
+# MLAG pair named 'rack1' and so on.
+# Bond members(slaves) will be the same on per MLAG pair. VLANs assign to a bond must exist in tenant VLANs
 # Examples:
-# Configure leaf01 and leaf02 a bond named control01 with a bond slaves of swp1 and bond-mode as trunk
+#   Configure leaf01 and leaf02 a bond named control01 with a bond slaves of swp1 and bond-mode as trunk
 #   rack01:
 #     - name: 'control01'
 #       members: 'swp1'
 #       vids: '500-501'
-# Configure leaf03 and leaf04 a bond named control02 with a bond slaves of swp10 and bond-mode as access
+#   Configure leaf03 and leaf04 a bond named control02 with a bond slaves of swp10 and bond-mode as access
 #   rack02:
 #     - name: 'control02'
 #       members: 'swp10'
 #       vids: '500'
 # Documentation: https://docs.cumulusnetworks.com/display/DOCS/Multi-Chassis+Link+Aggregation+-+MLAG
+# Host that is a member of rack must exist in inventory file
 mlag_bonds:
-    rack01:
-      - name: 'control01'
+    rack1:
+      - name: 'bond0'
         members: 'swp1'
         vids: '500-501'
-    rack02:
-      - name: 'compute01'
-        members: 'swp1'
-        vids: '500-501'
-    rack03:
-      - name: 'compute02'
+      - name: 'bond1'
         members: 'swp2'
         vids: '500-501'
+      - name: 'bond2'
+        members: 'swp3'
+        vids: '500-501'
+    rack2:
+      - name: 'bond0'
+        members: 'swp1'
+        vids: '500-501'
+
 
 ############# TOPOLOGY LINKS #############
 # Define a point-to-point links between devices
@@ -78,13 +83,13 @@ network_links:
         interface_type: sub_interface
 
 ############# BASE NETWORKS ###############
-# loopbacks: Use to automatically generate loopback IP of the device. The host IP is determine by the device node ID.
+# loopbacks = Use to automatically generate loopback IP of the device. The host IP is determine by the device node ID.
 #            Example given the loopback base network of group spine, spine01 will have an IP of 192.168.0.1/32.
 #            Variable mapping, "name_of_ansible_group": "network/prefix"
-# vxlan_anycast: Use to automatically generate a VTEP IP address in VXLAN active-active deployments.
+# vxlan_anycast = Use to automatically generate a VTEP IP address in VXLAN active-active deployments.
 #                Documentation: https://docs.cumulusnetworks.com/display/DOCS/VXLAN+Active-Active+Mode.
-# vlans: Use to automatically generate a VLAN CIDR if 'network/prefix' or 'prefixlen' attribute is not defined in 'vlans' variables.
-# external_connectivity: Use to dynamically generate point-to-point network /30 prefix, typically between border and edge device.
+# vlans = Use to automatically generate a VLAN CIDR if 'network/prefix' or 'prefixlen' attribute is not defined in 'vlans' variables.
+# external_connectivity = Use to dynamically generate point-to-point network /30 prefix, typically between border and edge device.
 base_networks:
   loopbacks:
       spine: '192.168.0.0/25'
@@ -97,29 +102,59 @@ base_networks:
   oob_management: '172.24.0.0/24'
 
 ############# BASE BGP AS #############
-# The script is build to automatically generate a BGP AS in tier 2 CLOS topology. Not tested in multi-pod or tier 3 topology
+# The script is build to automatically generate a BGP AS in tier 2 CLOS topology. Not tested in multi-pod or tier 3 topology.
 # The BGP AS number is determine by the device node ID except for spine which will have the same BGP AS number per device.
-# Example given the base BGP AS number of group leaf, leaf01 will have a BGP AS number of 64580
-# Variable mapping, "name_of_ansible_group": "base_private_asn"
+# Example given the base BGP AS number of group leaf, leaf01 will have a BGP AS number of 64580.
+# Mapping format is "name_of_ansible_group": "base_private_asn"
 base_asn:
   spine: 64512
   edge: 64530
   border: 64550
   leaf: 64580
 
-############# STATIC INTERFACES #############
-# Define a static interfaces
+############# STATIC NETWORK DEVICE INTERFACES #############
 ip_interfaces:
     edge01:
       - name: 'eth3'
         ip_address: 'dhcp'
         ip_nat: 'outside'
-        alias: 'internet'
+        alias: '-->internet'
       - name: 'eth2' # Management interface
         ip_address: '172.24.0.254/24'
-        alias: 'oob-management-gateway'
+        alias: '-->oob-mgmt_switch'
+
+############# STATIC SERVER INTERFACES #############
+# mgmt_port = a port connected to out-of-band management network
+# bonds = the bond attach to MLAG pair (top-of-rack), the 'rack' attribute tells which rack (MLAG pair) the bond attach
+# Host defined here must exist in inventory file
+server_interfaces:
+    server01:
+        mgmt_port: 'ens3'
+        bonds:
+          - name: 'bond0'
+            slaves: 'ens4-5'
+            rack: 1
+    server02:
+        mgmt_port: 'ens3'
+        bonds:
+          - name: bond1
+            slaves: 'ens4-5'
+            rack: 1
+    # server03:
+    #     mgmt_port: 'ens3'
+    #     bonds:
+    #       - name: bond2
+    #         slaves: 'ens4-5'
+    #         rack: 1
+    # server04:
+    #     mgmt_port: 'ens3'
+    #     bonds:
+    #       - name: bond0
+    #         slaves: 'ens4-5'
+    #         rack: 2
 
 ############# OUT-OF-BAND MANAGEMENT #############
+# Most use by Dnsmasq configurations
 domain: 'cumulusvxgns3.lab'
 dhcp_range: '172.24.0.50,172.24.0.200'
 gateway_address: '172.24.0.254'

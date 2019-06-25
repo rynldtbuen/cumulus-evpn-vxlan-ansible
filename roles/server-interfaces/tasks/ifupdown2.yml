@@ -1,0 +1,44 @@
+- name: INSTALL IFUPDOWN2 DEPENDENCIES
+  apt:
+      update_cache: yes
+      name: "{{ item }}"
+      state: latest
+  loop:
+      - build-essential
+      - devscripts
+      - dh-systemd
+      - fakeroot
+      - python-all
+      - python-docutils
+      - iproute2
+      - python-ipaddr
+      - python-argcomplete
+      - python-setuptools
+
+- name: REMOVE IFUPDOWN
+  apt:
+      name: ifupdown2
+      state: latest
+
+- name: CLONE IFUPDOWN2 REPO
+  git:
+    repo: https://github.com/CumulusNetworks/ifupdown2.git
+    dest: "/home/{{ ansible_user }}/ifupdown2"
+
+- name: IFUPDOWN2 MAKE DEB
+  shell: "cd ifupdown2 && git checkout master-next && make deb"
+
+- name: UPGRADE IFUPDOWN2
+  apt:
+      deb: "/home/{{ ansible_user }}/ifupdown2_1.2.1_all.deb"
+
+- name: ADD LINE TO NETWORKING SERVICE
+  lineinfile:
+      path: /etc/systemd/system/network-online.target.wants/networking.service
+      regexp: '^Listen '
+      insertafter: 'ExecStop=/sbin/ifdown -a'
+      line: RemainAfterExit=yes
+
+- debug: msg="Rebooting"
+
+- reboot:

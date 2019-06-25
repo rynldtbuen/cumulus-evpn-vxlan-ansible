@@ -64,5 +64,4 @@
           changed_when: not ansible_check_mode
           tags: [print_action]
       when: config_commands != '\n'
-  when: inventory_hostname in bgp_neighbors
   check_mode: false

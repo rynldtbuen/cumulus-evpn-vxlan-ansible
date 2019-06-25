@@ -1,0 +1,56 @@
+- pause:
+      prompt: |
+          Upgrade device to latest release? [yes/no]
+  register: input
+
+- set_fact:
+      reponse: |
+          {%  set res = input['user_input'] | lower %}
+          {{ true  if res == 'yes' or res == 'y' else false }}
+
+- block:
+    - name: CURRENT VERSION
+      nclu:
+          commands:
+            - show version
+      tags: [print_action]
+
+    - name: PING WWW.GOOGLE.COM
+      shell: 'ping -c 5 www.google.com -I mgmt'
+      register: ping
+      failed_when: false
+      changed_when: false
+
+    - fail:
+          msg: INTERNET IS UNREACHABLE
+      when: ping.rc == 2 or ping.rc == 1
+
+    - debug:
+          msg: "Do not interrupt. The upgrade might take a while"
+      tags: [print_action]
+
+    - name: UPGRADE DISTRIBUTION
+      apt:
+          update_cache: yes
+          upgrade: dist
+          cache_valid_time: 3600
+      register: upgrade
+
+    - name: REBOOT DEVICE
+      reboot:
+      when: upgrade is changed
+
+    - name: UPGRADE SUCCESSFUL
+      nclu:
+          commands:
+            - show version
+      tags: [print_action]
+      when: upgrade is changed
+
+    - name: DEVICE IS ALREADY UP-TO-DATE
+      nclu:
+          commands:
+            - show version
+      tags: [print_action]
+      when: upgrade is not changed
+  when: reponse

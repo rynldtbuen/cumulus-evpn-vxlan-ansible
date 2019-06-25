@@ -3,4 +3,24 @@
       check_interfaces: "{{ 'dummy' | get_config }}"
   run_once: true
 
+- name: CHECK HOST CONNECTIVITY
+  wait_for_connection:
+      timeout: 5
+  register: _ping
+
+- fail:
+      msg: |
+          {{ _ping['msg'] | regex_search('(?<=22: ).*') }}
+          *** Steps to resolve the error ***
+          1) For newly added device
+                - Make sure the device has the correct mgmt_hwaddr variable in inventory file
+                  and run the command 'ansible-playbook deploy.yml'
+          2) If you are sure that the device was working previously just make sure it was started
+  when: _ping is failed and (
+    _ping['msg'] is search('No route to host') or
+    _ping['msg'] is search('Connection timed out') or
+    _ping['msg'] is search('Temporary failure in name resolution')
+    )
+
 - include_tasks: "{{ ansible_network_os }}/main.yml"
+  when: inventory_hostname not in groups['server']

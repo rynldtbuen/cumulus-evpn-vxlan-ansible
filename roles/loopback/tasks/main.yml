@@ -4,3 +4,4 @@
   run_once: true
 
 - include_tasks: "{{ ansible_network_os }}/main.yml"
+  when: inventory_hostname in loopback_ips

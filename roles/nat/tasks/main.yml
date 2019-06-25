@@ -1,6 +1,7 @@
 - name: SET NAT VARIABLES
   set_fact:
       nat: "{{ 'nat' | get_config }}"
+  run_once: true
 
 - block:
     - name: NAT RUNNING CONFIGURATION COMMANDS

@@ -3,9 +3,5 @@
       bgp_neighbors: "{{ 'bgp_neighbors' | get_config }}"
   run_once: true
 
-- name: SET VRF L3VNI VARIABLES
-  set_fact:
-      l3vni: "{{ 'l3vni' | get_config }}"
-  run_once: true
-  
 - include_tasks: "{{ ansible_network_os }}/main.yml"
+  when: inventory_hostname in bgp_neighbors

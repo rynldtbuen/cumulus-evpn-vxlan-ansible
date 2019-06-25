@@ -83,6 +83,6 @@
       ```
 
     - Run the command below to update the `dnsmasq.conf` and follow the instructions at the end of playbook run.
-    ```
-    $ ansible-playbook dnsmasq.yml
-    ```
+      ```
+      $ ansible-playbook dnsmasq.yml
+      ```

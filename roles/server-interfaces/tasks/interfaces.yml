@@ -1,0 +1,57 @@
+- name: INTERFACES CONFIGURATION
+  set_fact:
+      iface_cfg: |
+          {% set ifaces = server_interfaces[inventory_hostname] %}
+          auto lo
+          iface lo inet loopback
+
+          auto {{ mgmt_port }}
+          iface {{ mgmt_port }} inet dhcp
+              # Workaround having multiple gateway, change into VRF in the future
+              up /sbin/ip route add default via {{ mgmt_gateway }} metric 100
+          {% for slave in ifaces['interfaces'] %}
+
+          auto {{ slave }}
+          iface {{ slave }}
+              link-speed 1000
+              link-duplex full
+          {% endfor %}
+          {% for bond in ifaces['bonds'] %}
+
+          auto {{ bond['bond'] }}
+          iface {{ bond['bond'] }} inet manual
+              alias uplink-to-{{ bond['rack'] }}
+              bond-slaves {{ bond['slaves'] }}
+              bond-miimon 100
+              bond-min-links 1
+              bond-mode 802.3ad
+              bond-xmit-hash-policy layer3+4
+              bond-lacp-rate 1
+          {% endfor %}
+          {% for vlan in ifaces['vlans'] %}
+
+          auto {{ vlan['vlan'] }}
+          iface {{ vlan['vlan'] }} inet static
+              alias {{ '%s.%s' | format(vlan['name'], vlan['tenant']) }}
+              address {{ vlan['ip'] }}
+              vlan-id {{ vlan['vid'] }}
+              vlan-raw-device {{ vlan['raw_device'] }}
+          {%    if vlan['primary_gw'] %}
+              gateway {{ vlan['gateway'] }}
+          {%    endif %}
+          {% endfor %}
+
+- name: UPDATE INTERFACES FILE
+  copy:
+      content: "{{ iface_cfg }}"
+      dest: /etc/network/interfaces
+  diff: true
+  register: etc_network_interfaces
+
+- name: RELOAD INTERFACES
+  shell: "ifreload -a"
+  async: 0
+  poll: 0
+  when: etc_network_interfaces is changed
+
+- command: ifquery -ax

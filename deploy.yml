@@ -1,27 +1,161 @@
-- name: NETWORK_DEVICE
-  hosts: network_device
+- name: DEPLOY NEW HOSTS
+  hosts: localhost
   gather_facts: false
-  any_errors_fatal: true
-  roles:
-    - { role: setup, tags: always }
-    - { role: loopback, tags: always }
+  tasks:
+      - include_vars: master.yml
+      - include_vars: files/hosts_tb_deploy.json
 
-- name: CUMULUS
-  hosts: cumulus
-  gather_facts: false
-  roles:
-    - { role: mlag-peerlink, tags: [mlag-peerlink, mlag-bonds, vxlan, svi] }
-    - { role: mlag-bonds, tags: [mlag-bonds, vxlan, svi] }
-    - { role: vxlan, tags: [vxlan, svi] }
-    - { role: svi, tags: svi }
-    - { role: ip-interfaces, tags: [ip-interfaces, bgp-evpn] }
-    - { role: route-maps, tags: [route-map, bgp-evpn] }
-    - { role: bgp-evpn, tags: bgp-evpn }
+      # - name: INSTALL DNSMASQ and SSHPASS
+      #   apt:
+      #       cache_valid_time: 86400
+      #       name: "{{ item }}"
+      #       state: latest
+      #   loop:
+      #       - dnsmasq
+      #       - sshpass
 
-- name: EDGE
-  hosts: edge
+      - name: DNSMASQ RUNNING CONFIG
+        command: cat /etc/dnsmasq.conf
+        changed_when: false
+        register: cat_output
+
+      - name: DUPLICATE MGMT HARDWARE ADDRESS
+        set_fact:
+            duplicate_mgmt_hwaddr: |
+                {%  set mgmt_hwaddr = {} %}
+                {%  for host in groups['all'] %}
+                {%      if hostvars[host]['mgmt_hwaddr'] is defined and hostvars[host]['mgmt_hwaddr'] != '' %}
+                {%          do mgmt_hwaddr.update({host: hostvars[host]['mgmt_hwaddr']}) %}
+                {%      endif %}
+                {%  endfor %}
+                {%  set dup = mgmt_hwaddr.values() | flatten | duplicate_items %}
+                {%  for k, v in mgmt_hwaddr.items() if v in dup %}
+                {{ k }}, {{ v }}
+                {% endfor %}
+
+      - fail:
+            msg: |
+                Duplicate mgmt_hwaddr:
+                ======================
+                {{ duplicate_mgmt_hwaddr }}
+        when: duplicate_mgmt_hwaddr != '\n'
+
+      - name: NEW HOSTS TO BE DEPLOY TEMPLATE
+        set_fact:
+            new_hosts: |
+                {%  set dnsmasq_hosts = {} %}
+                {%  set existing_hosts = cat_output['stdout'] | regex_findall('(?<=dhcp-host=)(\\S+),(\\w+)(?=,\\w+)') %}
+                {%  for item in existing_hosts %}
+                {%      set hwaddr, host = item %}
+                {%      do dnsmasq_hosts.update({host: hwaddr}) %}
+                {%  endfor %}
+                {%  set _new_hosts = [] %}
+                {%  for host in groups['all'] %}
+                {%    if hostvars[host]['mgmt_hwaddr'] is defined and hostvars[host]['mgmt_hwaddr'] != '' %}
+                {%        if host not in hosts_tb_deploy %}
+                {%            if host not in dnsmasq_hosts %}
+                {%                do _new_hosts.append(host) %}
+                {%            else %}
+                {%                if dnsmasq_hosts[host] != hostvars[host]['mgmt_hwaddr'] %}
+                {%                    do _new_hosts.append(host) %}
+                {%                endif %}
+                {%            endif %}
+                {%        endif %}
+                {%    endif %}
+                {%  endfor %}
+                {{ _new_hosts + hosts_tb_deploy }}
+
+      - name: UPDATE HOSTS_TB_DEPLOY FILE
+        copy:
+            content: "{{ {'hosts_tb_deploy': new_hosts} }}"
+            dest: files/hosts_tb_deploy.json
+        register: failed_new_hosts
+
+      - name: DNSMASQ ADDITIONAL HOSTS TEMPLATE
+        set_fact:
+            dnsmasq_addn_hosts: |
+                {% for host in groups['all'] if hostvars[host]['ansible_host'] is defined %}
+                {{ hostvars[host]['ansible_host'] }} {{ host }}
+                {% endfor %}
+
+      - name: DNSMASQ.CONF TEMPLATE
+        set_fact:
+            dnsmasq_conf: |
+                # Configuration file documentation http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html
+                domain-needed
+                bogus-priv
+                no-resolv
+                no-poll
+                server={{ dns_forwarder }}
+                listen-address=127.0.0.1
+                listen-address={{ dns_server }}
+                addn-hosts=/etc/dnsmasq_addn_hosts
+                expand-hosts
+                domain={{ domain }}
+                dhcp-range={{ dhcp_range }}
+
+                # DHCP OPTIONS
+                dhcp-option=tag:network_dev,3,{{ gateway_address }}
+                dhcp-option=tag:server,121,0.0.0.0/0,{{ gateway_address }}:100
+
+                # DHCP STATIC NETWORK DEVICES
+                {% for host in groups['cumulus'] | sort if hostvars[host]['mgmt_hwaddr'] != '' %}
+                dhcp-host={{ hostvars[host]['mgmt_hwaddr'] }},{{ host }},set:network_dev
+                {% endfor %}
+
+                # DHCP STATIC SERVERS
+                {% for host in groups['server'] | sort if hostvars[host]['mgmt_hwaddr'] != '' %}
+                dhcp-host={{ hostvars[host]['mgmt_hwaddr'] }},{{ host }},set:server
+                {% endfor %}
+
+      - name: UPDATE DNSMASQ_ADDN_HOSTS FILE
+        copy:
+            content: '{{ dnsmasq_addn_hosts }}'
+            dest: '/etc/dnsmasq_addn_hosts'
+        diff: true
+        register: addn_hosts
+
+      - name: UPDATE DNSMASQ.CONF FILE
+        copy:
+            content: '{{ dnsmasq_conf }}'
+            dest: '/etc/dnsmasq.conf'
+        diff: true
+        register: dnsmasq
+
+      - block:
+          - name: TEST DNSMASQ CONFIG
+            shell: 'dnsmasq --test'
+
+          - name: RESTART DNSMASQ SERVICE
+            systemd:
+                name: dnsmasq
+                state: restarted
+        when: dnsmasq is changed
+
+- import_playbook: provision.yml
+  when: hostvars['localhost']['new_hosts'] | length > 0
+
+- hosts: localhost
   gather_facts: false
-  roles:
-    - { role: ip-interfaces, tags: [ip-interfaces, bgp-evpn] }
-    - { role: nat, tags: nat }
-    - { role: bgp-evpn, tags: bgp-evpn }
+  tasks:
+
+    - name: UPDATE HOSTS_TB_DEPLOY TEMPLATE
+      set_fact:
+          _hosts_tb_deploy: |
+              {%  for host in new_hosts %}
+              {%    if host in groups['all'] %}
+              {%        if hostvars[host]['deployed'] is defined %}
+              {%            do hosts_tb_deploy.remove(host) %}
+              {%        endif %}
+              {%    else %}
+              {%        do hosts_tb_deploy.remove(host) %}
+              {%    endif %}
+              {%  endfor %}
+              {{ hosts_tb_deploy }}
+      when: new_hosts | length > 0
+
+    - name: UPDATE HOSTS_TB_DEPLOY FILE
+      copy:
+          content: "{{ {'hosts_tb_deploy': _hosts_tb_deploy} }}"
+          dest: files/hosts_tb_deploy.json
+      when: new_hosts | length > 0
