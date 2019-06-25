@@ -6,7 +6,7 @@
     - Start `mgmt-server01, mgmt-switch01` and `edge01` machine and wait to fully boot up, after that start all the machine
     - Console to `mgmt-server01` and run the commands below to deploy devices configurations
     ```
-    $ ansible-playbook deploy.yml
+    $ ansible-playbook configs.yml
     ```
   - #### Adding a devices to the existing topology
     In GNS3 GUI add a CumulusVX appliance. For this setup example we will add an addtiontional leaf named `leaf05` and `leaf06`.
@@ -84,5 +84,5 @@
 
     - Run the command below to update the `dnsmasq.conf` and follow the instructions at the end of playbook run.
       ```
-      $ ansible-playbook dnsmasq.yml
+      $ ansible-playbook deploy.yml
       ```

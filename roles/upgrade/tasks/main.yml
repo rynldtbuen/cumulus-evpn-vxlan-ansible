@@ -4,7 +4,7 @@
   register: input
 
 - set_fact:
-      reponse: |
+      response: |
           {%  set res = input['user_input'] | lower %}
           {{ true  if res == 'yes' or res == 'y' else false }}
 
@@ -15,18 +15,17 @@
             - show version
       tags: [print_action]
 
-    - name: PING WWW.GOOGLE.COM
+    - name: CHECK INTERNET CONNECTIVITY
       shell: 'ping -c 5 www.google.com -I mgmt'
       register: ping
-      failed_when: false
+      ignore_errors: true
       changed_when: false
 
     - fail:
           msg: INTERNET IS UNREACHABLE
       when: ping.rc == 2 or ping.rc == 1
 
-    - debug:
-          msg: "Do not interrupt. The upgrade might take a while"
+    - debug: msg="Do not interrupt. The upgrade might take a while"
       tags: [print_action]
 
     - name: UPGRADE DISTRIBUTION
@@ -36,21 +35,21 @@
           cache_valid_time: 3600
       register: upgrade
 
-    - name: REBOOT DEVICE
-      reboot:
+    - block:
+        - debug: msg="Rebooting"
+          tags: [print_action]
+
+        - reboot:
+
+        - name: UPGRADE SUCCESSFUL
+          nclu:
+              commands:
+                - show version
+          tags: [print_action]
       when: upgrade is changed
 
-    - name: UPGRADE SUCCESSFUL
-      nclu:
-          commands:
-            - show version
-      tags: [print_action]
-      when: upgrade is changed
-
-    - name: DEVICE IS ALREADY UP-TO-DATE
-      nclu:
-          commands:
-            - show version
+    - debug: msg="Device is already at latest release"
       tags: [print_action]
       when: upgrade is not changed
-  when: reponse
+      
+  when: response

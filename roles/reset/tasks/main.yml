@@ -4,7 +4,7 @@
   register: input
 
 - set_fact:
-      reponse: |
+      response: |
           {%  set res = input['user_input'] | lower %}
           {{ true  if res == 'yes' or res == 'y' else false }}
 

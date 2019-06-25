@@ -1,5 +1,4 @@
-# This play is only use to deploy newly added or change devices and it is imported by the deploy.yml.
-# Use the configs.yml to deploy additional configurations to the hosts that was already provisioned.
+# This play is imported by the deploy.yml do not use as a standalone play 
 
 - name: PROVISION
   hosts: "{{ hostvars['localhost']['new_hosts'] }}"
@@ -56,7 +55,7 @@
       - debug: msg="Rebooting"
         tags: [print_action]
 
-      # - reboot:
+      - reboot:
 
       - name: DEPLOY SSH KEY
         authorized_key:

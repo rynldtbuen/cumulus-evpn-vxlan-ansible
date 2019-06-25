@@ -1,3 +1,6 @@
+# This play is only use to deploy newly added or change devices.
+# Use the configs.yml to deploy additional configurations to the hosts that was already deployed.
+
 - name: DEPLOY NEW HOSTS
   hosts: localhost
   gather_facts: false

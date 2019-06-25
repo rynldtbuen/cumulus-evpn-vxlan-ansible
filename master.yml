@@ -57,12 +57,6 @@ mlag_bonds:
       - name: 'bond0'
         members: 'swp1'
         vids: '500-501'
-      - name: 'bond1'
-        members: 'swp2'
-        vids: '500-501'
-      - name: 'bond2'
-        members: 'swp3'
-        vids: '500-501'
     rack2:
       - name: 'bond0'
         members: 'swp1'
@@ -137,9 +131,9 @@ server_interfaces:
     server02:
         mgmt_port: 'ens3'
         bonds:
-          - name: bond1
+          - name: bond0
             slaves: 'ens4-5'
-            rack: 1
+            rack: 2
     # server03:
     #     mgmt_port: 'ens3'
     #     bonds:

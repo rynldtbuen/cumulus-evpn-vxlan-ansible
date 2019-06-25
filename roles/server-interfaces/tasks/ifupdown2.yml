@@ -1,3 +1,17 @@
+- name: CHECK INTERNET CONNECTIVITY
+  shell: 'ping -c 5 www.google.com'
+  register: ping
+  ignore_errors: true
+  changed_when: false
+
+- fail:
+      msg: INTERNET IS UNREACHABLE
+  when: ping.rc == 2 or ping.rc == 1
+
+- debug:
+      msg: "Installing packages"
+  tags: [print_action]
+
 - name: INSTALL IFUPDOWN2 DEPENDENCIES
   apt:
       update_cache: yes
@@ -38,7 +52,3 @@
       regexp: '^Listen '
       insertafter: 'ExecStop=/sbin/ifdown -a'
       line: RemainAfterExit=yes
-
-- debug: msg="Rebooting"
-
-- reboot:
