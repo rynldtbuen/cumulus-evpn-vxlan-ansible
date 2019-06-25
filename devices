@@ -12,12 +12,12 @@ leaf7 mgmt_hwaddr=''
 leaf8 mgmt_hwaddr=''
 
 [border]
-border01 mgmt_hwaddr=''
-border02 mgmt_hwaddr=''
+border1 mgmt_hwaddr=''
+border2 mgmt_hwaddr=''
 
 [spine]
-spine01 mgmt_hwaddr=''
-spine02 mgmt_hwaddr=''
+spine1 mgmt_hwaddr=''
+spine2 mgmt_hwaddr=''
 
 [cumulus:children]
 leaf
@@ -38,7 +38,7 @@ ansible_network_os=cumulus
 
 # Out-of-band management network gateway. Change accordingly to your topology
 [edge]
-edge01 ansible_host=172.24.0.254
+edge1 ansible_host=172.24.0.254
 
 # Default credentials. Change according to your topology
 # Use Ansible Single Encrypted Variable to encrypt password variables
@@ -57,8 +57,8 @@ spine
 edge
 
 [server]
-server01 mgmt_hwaddr=''
-server02 mgmt_hwaddr=''
+server1 mgmt_hwaddr=''
+server2 mgmt_hwaddr=''
 
 # Default credentials. Change according to your topology
 # Use Ansible Single Encrypted Variable to encrypt password variables
