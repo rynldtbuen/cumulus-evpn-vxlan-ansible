@@ -2,6 +2,7 @@
       prompt: |
           Upgrade device to latest release? [yes/no]
   register: input
+  run_once: true
 
 - set_fact:
       response: |
@@ -51,5 +52,5 @@
     - debug: msg="Device is already at latest release"
       tags: [print_action]
       when: upgrade is not changed
-      
+
   when: response

@@ -1,0 +1,12 @@
+- name: COPY INTERFACES DEFAULT CONFIG
+  copy:
+      src: "config_files/{{ inventory_hostname}}-default_iface.conf"
+      dest: "/etc/network/interfaces"
+  register: reset_ifaces
+  diff: true
+
+- name: RELOAD INTERFACES
+  shell: "ifreload -a"
+  async: 0
+  poll: 0
+  when: reset_ifaces is changed

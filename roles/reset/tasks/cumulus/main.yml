@@ -1,0 +1,10 @@
+- name: DELETE ALL CONFIGURATIONS
+  nclu:
+      commands:
+          - del all
+      commit: true
+  register: del_all
+
+- name: REBOOT THE DEVICE
+  reboot:
+  when: del_all is changed

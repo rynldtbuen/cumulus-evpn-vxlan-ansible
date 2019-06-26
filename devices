@@ -65,6 +65,7 @@ server2 mgmt_hwaddr=''
 # https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable Ansible-Vault
 [server:vars]
 default_pass=ubuntu
+ansible_network_os=server
 ansible_become=true
 ansible_user=ubuntu
 ansible_become_pass=ubuntu

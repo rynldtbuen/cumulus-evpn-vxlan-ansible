@@ -53,5 +53,3 @@
   async: 0
   poll: 0
   when: etc_network_interfaces is changed
-
-- command: ifquery -ax

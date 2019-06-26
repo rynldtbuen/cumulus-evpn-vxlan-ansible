@@ -3,6 +3,11 @@
   gather_facts: false
   roles:
       - { role: setup, tags: always }
+
+- name: CUMULUS
+  hosts: cumulus
+  gather_facts: false
+  roles:
       - { role: loopback, tags: [loopback, bgp-evpn, mlag-peerlink, vxlan] }
       - { role: mlag-peerlink, tags: [mlag-peerlink, mlag-bonds, vxlan, svi] }
       - { role: mlag-bonds, tags: [mlag-bonds, vxlan, svi] }
@@ -14,8 +19,49 @@
       - { role: reset, tags: [never, reset] }
       - { role: upgrade, tags: [never, upgrade] }
 
+- name: EDGE
+  hosts: edge
+  gather_facts: false
+  roles:
+      - { role: loopback, tags: [loopback, bgp-evpn, mlag-peerlink, vxlan] }
+      - { role: ip-interfaces, tags: [ip-interfaces, bgp-evpn] }
+      - { role: bgp-evpn, tags: bgp-evpn }
+      - { role: nat, tags: nat }
+
 - name: SERVER
   hosts: server
   gather_facts: false
   roles:
       - { role: server-interfaces, tags: server-interfaces }
+      - { role: reset, tags: [never, reset] }
+
+# Required configurations of localhost for new fresh install machine
+- name: LOCALHOST
+  hosts: localhost
+  gather_facts: false
+  tags: ['never', localhost]
+  vars:
+      required_packages: ['dnsmasq', 'sshpass']
+      ansible_user: "{{ lookup('env', 'USER')}}"
+      ssh_dir: "{{ lookup('env', 'HOME') }}/.ssh"
+  tasks:
+      - name: CREATE SSH DIR
+        file:
+            path: "{{ ssh_dir }}"
+            state: directory
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+
+      - name: GENERATE SSH KEY PAIR
+        openssh_keypair:
+            path: "{{ ssh_dir }}/id_rsa"
+            size: 2048
+            owner: "{{ ansible_user }}"
+            group: "{{ ansible_user }}"
+
+      - name: INSTALL REQUIRED PACKAGES
+        apt:
+            update_cache: yes
+            name: "{{ item }}"
+            state: latest
+        loop: "{{ required_packages }}"

@@ -8,19 +8,18 @@
       - include_vars: master.yml
       - include_vars: config_files/hosts_tb_deploy.json
 
-      # - name: INSTALL DNSMASQ and SSHPASS
-      #   apt:
-      #       cache_valid_time: 86400
-      #       name: "{{ item }}"
-      #       state: latest
-      #   loop:
-      #       - dnsmasq
-      #       - sshpass
-
       - name: DNSMASQ RUNNING CONFIG
-        command: cat /etc/dnsmasq.conf
+        command: cat /etc/dnsmasq1.conf
         changed_when: false
         register: cat_output
+        ignore_errors: true
+
+      - fail:
+            msg: |
+              Run the command below to setup the localhost for the first time.
+
+              ansible-playbook configs.yml -t localhost --skip-tags=always
+        when: cat_output is failed
 
       - name: DUPLICATE MGMT HARDWARE ADDRESS
         set_fact:

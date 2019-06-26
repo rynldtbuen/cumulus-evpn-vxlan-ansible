@@ -2,31 +2,12 @@
       prompt: |
           Delete all configurations? [yes/no]
   register: input
-
+  run_once: true
+  
 - set_fact:
       response: |
           {%  set res = input['user_input'] | lower %}
           {{ true  if res == 'yes' or res == 'y' else false }}
 
-- block:
-    - name: DELETE ALL CONFIGURATIONS
-      nclu:
-          commands:
-              - del all
-          commit: true
-      register: del_all
-
-    - name: REBOOT THE DEVICE
-      reboot:
-      when: del_all is changed
-
-    - debug:
-          msg: "RESET SUCCESSFUL"
-      tags: [print_action]
-      when: del_all is changed
-
-    - debug:
-          msg: "DEVICE IS ALREADY AT DEFAULT CONFIG"
-      when: del_all is not changed
-      tags: [print_action]
+- include_tasks: "{{ ansible_network_os }}/main.yml"
   when: response

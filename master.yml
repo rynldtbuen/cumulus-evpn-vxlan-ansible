@@ -22,7 +22,7 @@
 #   name: 'vlan503'
 #   allow_nat: true
 vlans:
-    tenant01:
+    tenant1:
       - id: '500'
         name: 'vlan500'
         prefixlen: 20
@@ -62,9 +62,20 @@ mlag_bonds:
         members: 'swp1'
         vids: '500-501'
 
-
 ############# TOPOLOGY LINKS #############
-# Define a point-to-point links between devices
+# Define a point-to-point links between devices/group of devices.
+# Link follows a string format of 'ansible_group/inventory_hostname:starting_port -- ansible_group/inventory_hostname:starting_port'.
+# If found a ansible_group in the link it will automatically increment the starting_port depend on how many nieghbors in the link
+# Examples: the link 'spine:swp1 -- leaf:swp21' and let say the ansible 'spine' group has a two hosts in it
+#           and ansible leaf group has four so the script will generate an individual links of:
+# "spine01:swp1 -- leaf01:swp21",
+# "spine01:swp2 -- leaf02:swp21",
+# "spine01:swp3 -- leaf03:swp21",
+# "spine01:swp4 -- leaf04:swp21",
+# "spine02:swp1 -- leaf01:swp22",
+# "spine02:swp2 -- leaf02:swp22",
+# "spine02:swp3 -- leaf03:swp22",
+# "spine02:swp4 -- leaf04:swp22",
 network_links:
     fabric:
         links:
@@ -108,7 +119,7 @@ base_asn:
 
 ############# STATIC NETWORK DEVICE INTERFACES #############
 ip_interfaces:
-    edge01:
+    edge1:
       - name: 'eth3'
         ip_address: 'dhcp'
         ip_nat: 'outside'
@@ -122,30 +133,18 @@ ip_interfaces:
 # bonds = the bond attach to MLAG pair (top-of-rack), the 'rack' attribute tells which rack (MLAG pair) the bond attach
 # Host defined here must exist in inventory file
 server_interfaces:
-    server01:
+    server1:
         mgmt_port: 'ens3'
         bonds:
           - name: 'bond0'
             slaves: 'ens4-5'
             rack: 1
-    server02:
+    server2:
         mgmt_port: 'ens3'
         bonds:
           - name: bond0
             slaves: 'ens4-5'
             rack: 2
-    # server03:
-    #     mgmt_port: 'ens3'
-    #     bonds:
-    #       - name: bond2
-    #         slaves: 'ens4-5'
-    #         rack: 1
-    # server04:
-    #     mgmt_port: 'ens3'
-    #     bonds:
-    #       - name: bond0
-    #         slaves: 'ens4-5'
-    #         rack: 2
 
 ############# OUT-OF-BAND MANAGEMENT #############
 # Most use by Dnsmasq configurations

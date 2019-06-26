@@ -1,6 +1,7 @@
 - name: TEMP INTERFACES TEMPLATE
   set_fact:
       temp_iface_config: |
+          # Default interfaces config
           auto lo
           iface lo inet loopback
 
@@ -9,12 +10,18 @@
               # Workaround having multiple gateway, change into VRF in the future
               up /sbin/ip route add default via {{ mgmt_gateway }} metric 100
 
-- name: UPDATE TEMP INTERFACES
+- name: COPY TEMP INTERFACES
   copy:
       content: "{{ temp_iface_config }}"
       dest: /etc/network/interfaces
   diff: true
   register: _temp_iface_config
+
+- name: COPY TEMP INTERFACES(1)
+  copy:
+      content: "{{ temp_iface_config }}"
+      dest: "config_files/{{ inventory_hostname }}-default_iface.conf"
+  changed_when: false
 
 - name: DHCLIENT EXIT HOOK TEMPLATE
   set_fact:
