@@ -1,13 +1,8 @@
-- name: CUMULUS
+- name: NETWORK DEVICE
   hosts: network_device
   gather_facts: false
   roles:
       - { role: setup, tags: always }
-
-- name: CUMULUS
-  hosts: cumulus
-  gather_facts: false
-  roles:
       - { role: loopback, tags: [loopback, bgp-evpn, mlag-peerlink, vxlan] }
       - { role: mlag-peerlink, tags: [mlag-peerlink, mlag-bonds, vxlan, svi] }
       - { role: mlag-bonds, tags: [mlag-bonds, vxlan, svi] }
@@ -18,15 +13,6 @@
       - { role: bgp-evpn, tags: bgp-evpn }
       - { role: reset, tags: [never, reset] }
       - { role: upgrade, tags: [never, upgrade] }
-
-- name: EDGE
-  hosts: edge
-  gather_facts: false
-  roles:
-      - { role: loopback, tags: [loopback, bgp-evpn] }
-      - { role: ip-interfaces, tags: [ip-interfaces, bgp-evpn] }
-      - { role: nat, tags: nat }
-      - { role: bgp-evpn, tags: bgp-evpn }
 
 - name: SERVER
   hosts: server

@@ -6,7 +6,7 @@
   gather_facts: false
   tasks:
       - include_vars: master.yml
-      - include_vars: files/hosts_tb_deploy.json
+      - include_vars: config_files/hosts_tb_deploy.json
 
       # - name: INSTALL DNSMASQ and SSHPASS
       #   apt:
@@ -71,7 +71,7 @@
       - name: UPDATE HOSTS_TB_DEPLOY FILE
         copy:
             content: "{{ {'hosts_tb_deploy': new_hosts} }}"
-            dest: files/hosts_tb_deploy.json
+            dest: config_files/hosts_tb_deploy.json
         register: failed_new_hosts
 
       - name: DNSMASQ ADDITIONAL HOSTS TEMPLATE
@@ -160,5 +160,5 @@
     - name: UPDATE HOSTS_TB_DEPLOY FILE
       copy:
           content: "{{ {'hosts_tb_deploy': _hosts_tb_deploy} }}"
-          dest: files/hosts_tb_deploy.json
+          dest: config_files/hosts_tb_deploy.json
       when: new_hosts | length > 0

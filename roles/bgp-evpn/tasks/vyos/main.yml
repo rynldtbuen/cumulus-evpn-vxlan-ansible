@@ -37,7 +37,7 @@
         - name: UPDATE BGP.CONF
           copy:
               content: "{{ config_commands }}"
-              dest: "{{ role_path }}/config/{{ inventory_hostname }}-bgp.conf"
+              dest: "config_files/{{ inventory_hostname }}-bgp.conf"
           delegate_to: localhost
           changed_when: false
 
@@ -47,7 +47,7 @@
               username: '{{ ansible_user }}'
               dev_os: '{{ ansible_network_os }}'
               password: '{{ ansible_ssh_pass }}'
-              config_file: '{{ role_path }}/config/{{ inventory_hostname }}-bgp.conf'
+              config_file: 'config_files/{{ inventory_hostname }}-bgp.conf'
               commit_changes: '{{ not ansible_check_mode }}'
           changed_when: not ansible_check_mode
           register: result
