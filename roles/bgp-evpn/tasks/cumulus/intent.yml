@@ -1,8 +1,3 @@
-- name: SET VRF L3VNI VARIABLES
-  set_fact:
-      l3vni: "{{ 'l3vni' | get_config }}"
-  run_once: true
-
 - name: BGP EVPN INTENT CONFIGURATION COMMANDS
   set_fact:
       intentconfgs: |

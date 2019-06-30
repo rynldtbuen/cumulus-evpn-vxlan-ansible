@@ -6,10 +6,6 @@ leaf1 mgmt_hwaddr=''
 leaf2 mgmt_hwaddr=''
 leaf3 mgmt_hwaddr=''
 leaf4 mgmt_hwaddr=''
-leaf5 mgmt_hwaddr=''
-leaf6 mgmt_hwaddr=''
-leaf7 mgmt_hwaddr=''
-leaf8 mgmt_hwaddr=''
 
 [border]
 border1 mgmt_hwaddr=''
@@ -47,7 +43,7 @@ edge1 ansible_host=172.24.0.254
 ansible_ssh_pass=admin
 ansible_user=vyos
 ansible_network_os=vyos
-ansible_connection=network_cli
+#ansible_connection=network_cli
 ansible_python_interpreter=/usr/bin/env python3
 
 [network_device:children]

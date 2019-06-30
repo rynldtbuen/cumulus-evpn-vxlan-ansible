@@ -1,6 +1,6 @@
 - name: CHECK INTERFACES
   set_fact:
-      check_interfaces: "{{ 'dummy' | get_config }}"
+      check_interfaces: "{{ 'check_interfaces' | get_config }}"
   run_once: true
 
 - name: CHECK HOST CONNECTIVITY

@@ -1,4 +1,4 @@
-# This play is imported by the deploy.yml do not use as a standalone play 
+# This play is imported by the deploy.yml do not use as a standalone play
 
 - name: PROVISION
   hosts: "{{ hostvars['localhost']['new_hosts'] }}"
@@ -29,27 +29,16 @@
 
   roles:
       - role: setup
-        when: inventory_hostname in groups['network_device']
       - role: loopback
-        when: inventory_hostname in groups['network_device']
       - role: mlag-peerlink
-        when: inventory_hostname in groups['network_device']
       - role: mlag-bonds
-        when: inventory_hostname in groups['network_device']
       - role: vxlan
-        when: inventory_hostname in groups['network_device']
       - role: svi
-        when: inventory_hostname in groups['network_device']
       - role: ip-interfaces
-        when: inventory_hostname in groups['network_device']
       - role: route-maps
-        when: inventory_hostname in groups['network_device']
       - role: bgp-evpn
-        when: inventory_hostname in groups['network_device']
       - role: nat
-        when: inventory_hostname in groups['network_device']
       - role: server-interfaces
-        when: inventory_hostname in groups['server']
 
   post_tasks:
       - debug: msg="Rebooting"

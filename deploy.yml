@@ -9,7 +9,7 @@
       - include_vars: config_files/hosts_tb_deploy.json
 
       - name: DNSMASQ RUNNING CONFIG
-        command: cat /etc/dnsmasq1.conf
+        command: cat /etc/dnsmasq.conf
         changed_when: false
         register: cat_output
         ignore_errors: true
@@ -141,23 +141,24 @@
   gather_facts: false
   tasks:
 
-    - name: UPDATE HOSTS_TB_DEPLOY TEMPLATE
+    - name: NEW HOSTS_TB_DEPLOY TEMPLATE
       set_fact:
           _hosts_tb_deploy: |
+              {%  set x = [] %}
               {%  for host in new_hosts %}
               {%    if host in groups['all'] %}
               {%        if hostvars[host]['deployed'] is defined %}
-              {%            do hosts_tb_deploy.remove(host) %}
+              {%            do x.append(host) %}
               {%        endif %}
               {%    else %}
-              {%        do hosts_tb_deploy.remove(host) %}
+              {%        do x.append(host) %}
               {%    endif %}
               {%  endfor %}
-              {{ hosts_tb_deploy }}
+              {{ {'hosts_tb_deploy': new_hosts | difference(x)} }}
       when: new_hosts | length > 0
 
     - name: UPDATE HOSTS_TB_DEPLOY FILE
       copy:
-          content: "{{ {'hosts_tb_deploy': _hosts_tb_deploy} }}"
+          content: "{{ _hosts_tb_deploy }}"
           dest: config_files/hosts_tb_deploy.json
       when: new_hosts | length > 0

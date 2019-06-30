@@ -1,10 +1,11 @@
 from cumulus_vxconfig.configvars import ConfigVars
 from cumulus_vxconfig.utils.filters import Filters
 
-f = Filters()
-
 
 class FilterModule:
+
+    configvars = ConfigVars()
+    filter = Filters()
 
     def filters(self):
         return {
@@ -16,15 +17,14 @@ class FilterModule:
         }
 
     def get_config(self, v):
-        configvars = ConfigVars()
-        method = getattr(configvars, v)
+        method = getattr(self.configvars, v)
         return method()
 
     def uncluster(self, v):
-        return f.uncluster(v)
+        return self.filter.uncluster(v)
 
     def cluster(self, v):
-        return f.cluster(v)
+        return self.filter.cluster(v)
 
     def duplicate_items(self, v):
         return [item for item in set(v) if v.count(item) > 1]
