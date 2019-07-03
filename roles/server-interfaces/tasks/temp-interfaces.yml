@@ -21,6 +21,7 @@
   copy:
       content: "{{ temp_iface_config }}"
       dest: "config_files/{{ inventory_hostname }}-default_iface.conf"
+  delegate_to: localhost
   changed_when: false
 
 - name: DHCLIENT EXIT HOOK TEMPLATE

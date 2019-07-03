@@ -19,7 +19,7 @@
       - name: CHECK IF IFUPDOWN2 IS INSTALLED
         shell: "dpkg -l | grep ifupdown2 | awk '{print $3}'"
         register: ifupdown2
-        
+
       - include_tasks: ifupdown2.yml
         when: ifupdown2['stdout'] != '1.2.1'
 
