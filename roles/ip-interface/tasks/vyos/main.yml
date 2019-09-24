@@ -1,0 +1,18 @@
+- name: Intent config
+  set_fact:
+      intent: |
+          {% for interface, v in ip_interfaces.items() %}
+          {%    if '.' in interface %}
+          {%        set _interface, vif = interface.split('.') %}
+          set interfaces ethernet {{ _interface }} vif {{ vif }} address '{{ v['address'] }}'
+          set interfaces ethernet {{ _interface }} vif {{ vif }} description '{{ v['alias'] }}'
+          {%    else %}
+          set interfaces ethernet {{ interface }} address '{{ v['address'] }}'
+          set interfaces ethernet {{ interface}} description '{{ v['alias'] }}'
+          {%    endif %}
+          {%  endfor %}
+
+- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+  vyos_ip_interface:
+      running: "{{ show_config['stdout'] }}"
+      intent: "{{ intent }}"

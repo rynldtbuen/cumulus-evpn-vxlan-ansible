@@ -1,7 +1,6 @@
-- name: SET LO INTERFACE VARIABLES
-  set_fact:
-      loopback_ips: "{{ 'loopback_ips' | get_config }}"
-  run_once: true
+- name: Get config variable
+  get_config:
+      vars: loopback
 
 - include_tasks: "{{ ansible_network_os }}/main.yml"
-  when: inventory_hostname in loopback_ips
+  when: loopback is not none

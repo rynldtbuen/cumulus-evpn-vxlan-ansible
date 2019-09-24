@@ -1,0 +1,64 @@
+- name: Check internet connectivity
+  shell: 'ping -c 5 www.google.com'
+  register: ping
+  ignore_errors: true
+  changed_when: false
+
+- fail:
+      msg: Internet is unreachable
+  when: ping.rc == 2 or ping.rc == 1
+
+- debug:
+      msg: "Installing packages"
+  tags: [print_action]
+
+- name: Install ifupdown2 dependencies
+  apt:
+      update_cache: yes
+      name: "{{ item }}"
+      state: latest
+  loop:
+      - build-essential
+      - devscripts
+      - dh-systemd
+      - fakeroot
+      - python-all
+      - python-docutils
+      - iproute2
+      - python-ipaddr
+      - python-argcomplete
+      - python-setuptools
+
+- name: Remove ifupdown
+  apt:
+      name: ifupdown2
+      state: latest
+
+- name: Clone ifupdown2 repo
+  git:
+    repo: https://github.com/CumulusNetworks/ifupdown2.git
+    dest: "/home/{{ ansible_user }}/ifupdown2"
+
+- name: Create ifupdown2 deb package
+  shell: "cd ifupdown2 && git checkout master-next && make deb"
+
+- name: Ifupdown2 version
+  shell: "ls | grep ifupdown2*.deb"
+  register: deb_package
+
+- name: Upgrade ifupdown2
+  apt:
+      deb: "/home/{{ ansible_user }}/{{ deb_package['stdout'] }}"
+
+- name: Install bridge-utils
+  apt:
+      update_cache: yes
+      name: bridge-utils
+      state: latest
+
+- name: Edit systemd networking service
+  lineinfile:
+      path: /etc/systemd/system/network-online.target.wants/networking.service
+      regexp: '^Listen '
+      insertafter: 'ExecStop=/sbin/ifdown -a'
+      line: RemainAfterExit=yes

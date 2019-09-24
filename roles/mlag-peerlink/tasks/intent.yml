@@ -1,9 +1,0 @@
-- name: MLAG PEERLINK INTENT CONFIGURATION COMMANDS
-  set_fact:
-      intentconfgs: |
-          {% set peerlink = mlag_peerlink[inventory_hostname] %}
-          net add interface peerlink.4094 clag backup-ip {{ peerlink ['backup_ip'] }}
-          net add interface peerlink.4094 clag peer-ip {{ peerlink ['peer_ip'] }}
-          net add interface peerlink.4094 clag priority {{ peerlink ['priority'] }}
-          net add interface peerlink.4094 clag sys-mac {{ peerlink ['system_mac'] }}
-          net add interface peerlink.4094 ip address {{ peerlink ['ip'] }}

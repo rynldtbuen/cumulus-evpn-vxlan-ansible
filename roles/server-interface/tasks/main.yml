@@ -1,0 +1,27 @@
+- name: Server interfaces variable
+  get_config:
+      vars: server_interfaces
+
+- block:
+      - name: Set oob mgmt
+        set_fact:
+            mgmt: "{{ server_interfaces['mgmt'] }}"
+
+      - name: Check existing network config
+        command: cat /etc/network/interfaces
+        changed_when: false
+        register: temp_iface_config
+
+      - include_tasks: temp-interfaces.yml
+        when: (temp_iface_config['stdout'] | regex_findall('(?<=auto )\w+')) | length <= 2
+
+      - name: Check if ifupdown2 is installed
+        shell: "dpkg -l | grep ifupdown2 | awk '{print $3}'"
+        register: ifupdown2
+        changed_when: false
+
+      - include_tasks: ifupdown2.yml
+        when: not ifupdown2['stdout'].startswith('1.2') or ifupdown2['stdout'] is version('1.2.1' '<')
+
+      - include_tasks: interfaces.yml
+  when: server_interfaces is not none

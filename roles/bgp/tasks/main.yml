@@ -1,0 +1,6 @@
+- name: Get config variables
+  get_config:
+      vars: bgp
+
+- include_tasks: "{{ ansible_network_os }}/main.yml"
+  when: bgp is not none

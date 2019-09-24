@@ -1,7 +1,0 @@
-- name: LO INTENT CONFIGURATION COMMANDS
-  set_fact:
-      intentconfgs: |
-          {% set lo = loopback_ips[inventory_hostname] %}
-          {% for ip in lo['ip_addresses'] %}
-          set interfaces loopback lo address '{{ ip }}'
-          {% endfor %}

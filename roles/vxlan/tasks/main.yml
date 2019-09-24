@@ -1,49 +1,52 @@
-- name: SET VXLAN VARIABLES
-  set_fact:
-      vxlans: "{{ 'vxlans' | get_config }}"
-  run_once: true
+- name: Get config variable
+  get_config:
+      vars: vxlan
 
-- block:
-    - name: RUNNING VXLAN INTERFACES
-      set_fact:
-          run_vxlan_interfaces: "{{ confg_commands['msg']
-              | regex_findall('(?<=net add vxlan )(\\w+)(?=\\svxlan id)') }}"
+- include_tasks: vxlan.yml
+  when: vxlan is not none
 
-    - name: NET DEL VXLAN INTERFACES
-      nclu:
-          template: |
-              {%  set vxlan_intent_interfaces = vxlans[inventory_hostname]['vxlan_interfaces']
-                    | map(attribute='name') | list %}
-              {%  for interface in run_vxlan_interfaces
-                      if interface not in vxlan_intent_interfaces %}
-              del vxlan {{ interface }}
-              {%  endfor %}
-      register: vxlan_
 
-    - name: VXLAN RUNNING CONFIGURATION COMMANDS
-      set_fact:
-          runconfgs: "{{ confg_commands['msg']
-              | regex_findall('net add vxlan \\w+\\S+ (?!stp).*') }}"
-
-    #***** Change 'intent.yml' file for intent configurations commands *****#
-    - include_tasks: intent.yml
-
-    - name: PUSH VXLAN INTENT CONFIGURATION COMMANDS
-      nclu:
-          template: |
-              {%  set _intentconfgs = intentconfgs.split('\n')
-                    | reject('equalto', '') | list %}
-              {%  for confg in _intentconfgs if confg not in runconfgs %}
-              {{ confg.replace('net add', 'add') }}
-              {%  endfor %}
-      register: _vxlan
-
-    - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
-      nclu:
-          commands:
-          - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
-      when: vxlan_ is changed or _vxlan is changed
-      changed_when: not ansible_check_mode
-      tags: [print_action]
-  when: inventory_hostname in vxlans
-  check_mode: false
+# - block:
+#     - include_tasks: intent_template.yml
+#
+#     - name: Intent config
+#       set_fact:
+#           intent_cfg: "{{ intent_template.splitlines() }}"
+#
+#     - name: Running config
+#       set_fact:
+#           running_cfg: "{{ show_config['msg'] | find_cfg('net add vxlan.*') }}"
+#
+#     - name: NCLU del/add commands
+#       set_fact:
+#           nclu: "{{ 'vxlan' | interface_nclu(running_cfg, intent_cfg, vxlan['interfaces']) }}"
+#
+#     - name: Delete config
+#       nclu:
+#           template: |
+#               {% for cfg in nclu['del'] %}
+#               {{ cfg }}
+#               {% endfor %}
+#       changed_when: not ansible_check_mode
+#       when: nclu['del'] | length > 0
+#       register: del_vxlan
+#
+#     - name: Add config
+#       nclu:
+#           template: |
+#               {% for cfg in nclu['add'] %}
+#               {{ cfg }}
+#               {% endfor %}
+#       changed_when: not ansible_check_mode
+#       when: nclu['add'] | length > 0
+#       register: add_vxlan
+#
+#     - name: "{{ 'Commited changes' if not ansible_check_mode else 'Pending changes' }}"
+#       nclu:
+#           commands:
+#           - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+#       when: nclu['del'] | length > 0 or nclu['add'] | length > 0
+#       changed_when: not ansible_check_mode
+#       tags: [print_action]
+#   when: vxlan is not none
+#   check_mode: false

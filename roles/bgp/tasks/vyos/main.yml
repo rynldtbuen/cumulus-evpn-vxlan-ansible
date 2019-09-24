@@ -1,0 +1,208 @@
+- name: Intent config
+  set_fact:
+      intent: |
+         set protocols bgp {{ bgp['as'] }} maximum-paths ebgp '2'
+         set protocols bgp {{ bgp['as'] }} parameters router-id '{{ bgp['router_id'] }}'
+         set protocols bgp {{ bgp['as'] }} network '0.0.0.0/0'
+         {%  for item in bgp['neighbors'].values() | flatten %}
+         set protocols bgp {{ bgp['as'] }} neighbor {{ item['neighbor'] }} remote-as '{{ item['remote_as'] }}'
+         {%  endfor %}
+
+- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+  vyos_bgp:
+      running: "{{ show_config['stdout'] }}"
+      intent: "{{ intent }}"
+#          set protocols bgp {{ bgp['as'] }} redistribute 'static'
+
+# - name: Intent config
+#   set_fact:
+#       intent_cfg: "{{ intent_template.splitlines() }}"
+#
+# - name: Running config
+#   set_fact:
+#       running_cfg: "{{ show_config['stdout'][0] | find_cfg('set protocols bgp \\w+ (?!speed|duplex|hw-id|smp).*') }}"
+#
+# - name: Set/delete commands
+#   set_fact:
+#     command: "{{ running_cfg | set_style(intent_cfg, 'bgp', bgp) }}"
+#
+# - block:
+#       - name: Delete config
+#         cli_config:
+#             config: |
+#                 {% for command in command['del'] %}
+#                 {{ command }}
+#                 {% endfor %}
+#         when: command['del'] | length > 0
+#
+#       - name: Add config
+#         cli_config:
+#             config: |
+#                 {% for command in command['set'] %}
+#                 {{ command }}
+#                 {% endfor %}
+#         when: command['set'] | length > 0
+#   when: not ansible_check_mode and (command['del'] | length > 0 or command['set'] | length > 0)
+#
+# - name: "{{ 'Committed changes' if not ansible_check_mode else 'Pending changes' }}"
+#   debug:
+#       msg: |
+#           {% for command in command['del'] %}
+#           {{ command }}
+#           {% endfor %}
+#           {% for command in command['set'] %}
+#           {{ command }}
+#           {% endfor %}
+#   changed_when: not ansible_check_mode
+#   when: command['del'] | length > 0 or command['set'] | length > 0
+#   tags: [print_action]
+# - block:
+#     - name: GET BGP CONFIGS
+#       get_config:
+#           bgp: "{{ inventory_hostname }}"
+
+  #   - name: RUNNING BGP AS
+  #     set_fact:
+  #         run_bgp_as: "{{ runconfigs | regex_search('(?<=bgp )(\\d+)') }}"
+  #
+  #   - block:
+  #       - name: "{{ 'UPDATE config_files/%s-bgp.conf' | format(inventory_hostname) }}"
+  #         copy:
+  #             content: |
+  #                 delete protocols bgp {{ run_bgp_as }}
+  #             dest: "config_files/{{ inventory_hostname }}-bgp.conf"
+  #         delegate_to: localhost
+  #
+  #       - name: DELETE OLD BGP CONFIGS
+  #         napalm_install_config:
+  #             hostname: "{{ inventory_hostname }}"
+  #             username: "{{ ansible_user }}"
+  #             dev_os: "{{ ansible_network_os }}"
+  #             password: "{{ ansible_ssh_pass }}"
+  #             config_file: "config_files/{{ inventory_hostname }}-bgp.conf"
+  #             commit_changes: "{{ not ansible_check_mode }}"
+  #         changed_when: not ansible_check_mode
+  #
+  #       - fail:
+  #             msg: 'BGP AS was changed. Commit the pending changes first by running the playbook in normal mode'
+  #         when: ansible_check_mode
+  #
+  #       - meta: end_play
+  #     when: run_bgp_as != '' and run_bgp_as != bgp['as']
+  #
+  #   - name: BGP RUNNING CONFIGURATION COMMANDS
+  #     set_fact:
+  #         _runconfigs: "{{ runconfigs | find_configs('.*bgp \\d+ .*') }}"
+  #
+  #   - include_tasks: intent.yml
+  #
+  #   - name: SET BGP CONFIGS
+  #     set_fact:
+  #         commands: |
+  #             {% set _intentconfigs = intentconfigs.splitlines() %}
+  #             {% for c in _runconfigs if c not in _intentconfigs %}
+  #             {{ c.replace('set', 'delete') }}
+  #             {% endfor %}
+  #             {% for c in _intentconfigs if c not in _runconfigs %}
+  #             {{ c }}
+  #             {% endfor %}
+  #
+  #   - block:
+  #       - name: "{{ 'UPDATE config_files/%s-bgp.conf' | format(inventory_hostname) }}"
+  #         copy:
+  #             content: "{{ commands }}"
+  #             dest: "config_files/{{ inventory_hostname }}-bgp.conf"
+  #         delegate_to: localhost
+  #         register: set_commands
+  #
+  #       - name: PUSH BGP CONFIGS
+  #         napalm_install_config:
+  #             hostname: "{{ inventory_hostname }}"
+  #             username: "{{ ansible_user }}"
+  #             dev_os: "{{ ansible_network_os }}"
+  #             password: "{{ ansible_ssh_pass }}"
+  #             config_file: "config_files/{{ inventory_hostname }}-bgp.conf"
+  #             commit_changes: "{{ not ansible_check_mode }}"
+  #         when: set_commands is changed
+  #         changed_when: not ansible_check_mode
+  #
+  #       - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+  #         debug:
+  #             msg: |
+  #                 # Set-style configuration commands #
+  #                 ====================================
+  #                 {% for commands in commands.splitlines() %}
+  #                 {{ commands }}
+  #                 {% endfor %}
+  #         changed_when: not ansible_check_mode
+  #         tags: [print_action]
+  #     when: commands != '\n'
+  # check_mode: false
+
+# - block:
+#     - name: BGP RUNNING CONFIGURATION COMMANDS
+#       set_fact:
+#           runconfgs: "{{ showconfg['stdout']
+#               | regex_findall('.*bgp \\d+ .*') }}"
+#
+#     - name: NORMALISED BGP VARIABLES
+#       set_fact:
+#           _bgp_neighbors: |
+#               {%  set bgp_neighbors_ = bgp_neighbors[inventory_hostname].values() | flatten %}
+#               {%  set x = {'as': {}, 'router_id': {}, 'neighbors': []} %}
+#               {%  for k, v in bgp_neighbors_ | groupby('as') %}
+#               {%    do x.__setitem__('as', k) %}
+#               {%    for item in v %}
+#               {%        do x.__setitem__('router_id', item['router_id']) %}
+#               {%        do x['neighbors'].extend(item['neighbors']) %}
+#               {%    endfor %}
+#               {%  endfor %}
+#               {{ x }}
+#
+#     #### Change 'intent.yml' file for the intent configurations commands ####
+#     - include_tasks: intent.yml
+#
+#     - name: AWAITING BGP CONFIGURATION COMMANDS
+#       set_fact:
+#           config_commands: |
+#               {%  set _intentconfgs = intentconfgs.split('\n')
+#                     | reject('equalto', '') | list %}
+#               {%  for confg in runconfgs if confg not in _intentconfgs %}
+#               {{ confg.replace('set', 'delete') }}
+#               {%  endfor %}
+#               {%  for confg in _intentconfgs if confg not in runconfgs %}
+#               {{ confg }}
+#               {%  endfor %}
+#
+#     - block:
+#         - name: UPDATE BGP.CONF
+#           copy:
+#               content: "{{ config_commands }}"
+#               dest: "config_files/{{ inventory_hostname }}-bgp.conf"
+#           delegate_to: localhost
+#           changed_when: false
+#
+#         - name: PUSH BGP CONFIGURATION COMMANDS
+#           napalm_install_config:
+#               hostname: "{{ inventory_hostname }}"
+#               username: "{{ ansible_user }}"
+#               dev_os: "{{ ansible_network_os }}"
+#               password: "{{ ansible_ssh_pass }}"
+#               config_file: "config_files/{{ inventory_hostname }}-bgp.conf"
+#               commit_changes: "{{ not ansible_check_mode }}"
+#           changed_when: not ansible_check_mode
+#           register: result
+#
+#         - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
+#           debug:
+#               msg: |
+#                   {{ result.msg }}
+#                   # Set-style configuration commands #
+#                   ====================================
+#                   {%  for config in config_commands.split('\n') | reject('equalto', '') | list  %}
+#                   {{ config }}
+#                   {%  endfor %}
+#           changed_when: not ansible_check_mode
+#           tags: [print_action]
+#       when: config_commands != '\n'
+#   check_mode: false

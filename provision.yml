@@ -6,21 +6,26 @@
   vars:
       ansible_ssh_pass: "{{ default_pass }}"
   pre_tasks:
-      - wait_for_connection:
-            timeout: 30
+      - name: Waiting for connection
+        wait_for_connection:
+            timeout: 10
         register: _ping
-        ignore_errors: true
+        until: _ping is success
+        retries: 10
 
-      - name: REMOVE OLD SSH KEY
+      - name: Remove old ssh key
         command: "{{ _ping['msg'] | regex_search('ssh-keygen.*') }}"
         delegate_to: localhost
         register: remove_old_ssh_key
         when: _ping is failed and _ping['msg'] is search('ssh-keygen.*')
 
-      - fail:
+      - name: Fail
+        fail:
             msg: |
-                device is unreachable (mgmt_hwaddr={{ mgmt_hwaddr }}).
-                Make sure the device has the correct mgmt_hwaddr variable in inventory file also check if it was started
+                Check if the device is:
+                    1. Connected to management network
+                    2. Turn on
+                    3. Has a correct mgmt_hwaddr({{ mgmt_hwaddr }}) variable in inventory file
         when: _ping is failed and (
           _ping['msg'] is search('No route to host') or
           _ping['msg'] is search('Connection timed out') or
@@ -30,20 +35,20 @@
   roles:
       - role: setup
       - role: loopback
-      - role: mlag-peerlink
-      - role: mlag-bonds
+      - role: peerlink
+      - role: bond
       - role: vxlan
       - role: svi
-      - role: ip-interfaces
-      - role: route-maps
-      - role: bgp-evpn
+      - role: ip-interface
+      - role: route-map
+      - role: vrf
+      - role: bgp
       - role: nat
-      - role: server-interfaces
+      - role: server-interface
 
   post_tasks:
       - debug: msg="Rebooting"
         tags: [print_action]
-
       - reboot:
 
       - name: DEPLOY SSH KEY

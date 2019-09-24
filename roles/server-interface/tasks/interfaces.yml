@@ -1,0 +1,61 @@
+- name: Interface config
+  set_fact:
+      iface_cfg: |
+          auto lo
+          iface lo inet loopback
+
+          auto {{ mgmt['port'] }}
+          iface {{ mgmt['port'] }} inet dhcp
+              # Workaround having multiple gateway
+              up /sbin/ip route add default via {{ mgmt['gateway'] }} metric 100
+
+          {% for slave in server_interfaces['interfaces'] %}
+          auto {{ slave }}
+          iface {{ slave }}
+              link-speed 1000
+              link-duplex full
+          {% endfor %}
+
+          {% set bridge = server_interfaces['bridge'] %}
+          auto bridge
+          iface bridge
+              bridge-ports {{ bridge['ports'] }}
+              bridge-vids {{ bridge['vids'] }}
+              bridge-vlan-aware yes
+
+          {% for bond, v in server_interfaces['bonds'].items() %}
+          auto {{ bond }}
+          iface {{ bond }}
+              alias uplink-to-{{ v['rack'] }}
+              bond-slaves {{ v['slaves'] }}
+              bond-mode 802.3ad
+              bond-xmit-hash-policy layer3+4
+              bond-miimon 100
+              bond-min-links 1
+              bond-lacp-rate 1
+          {% endfor %}
+
+          {% for vlan, v in server_interfaces['vlans_interface'] | dictsort %}
+          auto {{ vlan }}
+          iface {{ vlan }}
+              alias {{ v['alias'] }}
+              address {{ v['ip'] }}
+              vlan-id {{ v['vid'] }}
+              vlan-raw-device bridge
+          {%    if v['gateway'] %}
+              up /sbin/ip route add default via {{ v['gateway'] }} metric {{ v['metric'] }}
+          {%    endif %}
+          {% endfor %}
+
+- name: Copy interface config
+  copy:
+      content: "{{ iface_cfg }}"
+      dest: /etc/network/interfaces
+  diff: true
+  register: etc_network_interfaces
+
+- name: Reload interface config
+  shell: "ifreload -a"
+  async: 0
+  poll: 0
+  when: etc_network_interfaces is changed

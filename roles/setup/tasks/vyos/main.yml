@@ -1,5 +1,5 @@
-- name: SHOW CONFIGURATION COMMANDS
+- name: Show config
   cli_command:
       command: show configuration commands
-  register: showconfg
+  register: show_config
   check_mode: false

@@ -1,0 +1,11 @@
+- name: Intent config
+  set_fact:
+      intent: |
+          {% for vrf, vni in vrf_vni.items() %}
+          net add vrf {{ vrf }} vni {{ vni }}
+          {% endfor %}
+
+- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+  cml_vrf:
+      running: "{{ show_config['msg'] }}"
+      intent: "{{ intent }}"

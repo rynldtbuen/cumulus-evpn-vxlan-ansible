@@ -1,19 +1,30 @@
-localhost ansible_connection=local ansible_become=true ansible_become_pass=admin ansible_python_interpreter=/usr/bin/python3
+localhost ansible_connection=local ansible_become=true ansible_become_pass=admin ansible_python_interpreter=/home/reynold/Projects/vevn/cml/bin/python
 
 # The 'mgmt_hwaddr' variable is the hardware address of interface connected to oob management network
-[leaf]
-leaf1 mgmt_hwaddr=''
-leaf2 mgmt_hwaddr=''
-leaf3 mgmt_hwaddr=''
-leaf4 mgmt_hwaddr=''
+[rack1]
+leaf1 mgmt_hwaddr='0c:d9:c8:fa:01:00'
+leaf2 mgmt_hwaddr='0c:d9:c8:fc:cb:00'
+
+[rack2]
+leaf3 mgmt_hwaddr='0c:d9:c8:0e:d9:00'
+leaf4 mgmt_hwaddr='0c:d9:c8:53:7a:00'
+
+[rack3]
+leaf5 mgmt_hwaddr='0c:d9:c8:93:4b:00'
+leaf6 mgmt_hwaddr='0c:d9:c8:62:7a:00'
+
+[leaf:children]
+rack1
+rack2
+rack3
 
 [border]
-border1 mgmt_hwaddr=''
-border2 mgmt_hwaddr=''
+border1 mgmt_hwaddr='0c:d9:c8:eb:c4:00'
+border2 mgmt_hwaddr='0c:d9:c8:09:75:00'
 
 [spine]
-spine1 mgmt_hwaddr=''
-spine2 mgmt_hwaddr=''
+spine1 mgmt_hwaddr='0c:d9:c8:ef:f8:00'
+spine2 mgmt_hwaddr='0c:d9:c8:48:1e:00'
 
 [cumulus:children]
 leaf
@@ -43,7 +54,7 @@ edge1 ansible_host=172.24.0.254
 ansible_ssh_pass=admin
 ansible_user=vyos
 ansible_network_os=vyos
-#ansible_connection=network_cli
+ansible_connection=network_cli
 ansible_python_interpreter=/usr/bin/env python3
 
 [network_device:children]
@@ -53,15 +64,15 @@ spine
 edge
 
 [server]
-server1 mgmt_hwaddr=''
-server2 mgmt_hwaddr=''
+server1 mgmt_hwaddr='0c:d9:c8:ec:56:00'
+server2 mgmt_hwaddr='0c:d9:c8:d0:4f:00'
+server3 mgmt_hwaddr='0c:d9:c8:35:67:00'
 
 # Default credentials. Change according to your topology
 # Use Ansible Single Encrypted Variable to encrypt password variables
 # https://docs.ansible.com/ansible/latest/user_guide/playbooks_vault.html#single-encrypted-variable Ansible-Vault
 [server:vars]
 default_pass=ubuntu
-ansible_network_os=server
 ansible_become=true
 ansible_user=ubuntu
 ansible_become_pass=ubuntu

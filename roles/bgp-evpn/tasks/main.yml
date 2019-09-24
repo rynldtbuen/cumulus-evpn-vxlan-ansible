@@ -1,7 +1,0 @@
-- name: SET BGP VARIABLES
-  set_fact:
-      bgp_neighbors: "{{ 'bgp_neighbors' | get_config }}"
-  run_once: true
-
-- include_tasks: "{{ ansible_network_os }}/main.yml"
-  when: inventory_hostname in bgp_neighbors

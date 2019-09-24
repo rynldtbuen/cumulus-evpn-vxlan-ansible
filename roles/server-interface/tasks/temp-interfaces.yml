@@ -1,0 +1,50 @@
+- name: Temporary interface config
+  set_fact:
+      temp_iface_config: |
+          # Default interfaces config
+          auto lo
+          iface lo inet loopback
+
+          auto {{ mgmt['port'] }}
+          iface {{ mgmt['port'] }} inet dhcp
+              # Workaround having multiple gateway
+              up /sbin/ip route add default via {{ mgmt['gateway'] }} metric 100
+
+- name: Copy Temporary interface config
+  copy:
+      content: "{{ temp_iface_config }}"
+      dest: /etc/network/interfaces
+  diff: true
+  register: _temp_iface_config
+
+# - name: COPY #_TEMP INTERFACES(1)
+#   copy:
+#       content: "{{ temp_iface_config }}"
+#       dest: "config_files/{{ inventory_hostname }}-default_iface.conf"
+#   delegate_to: localhost
+#   changed_when: false
+
+- name: Dhclient exit hook
+  set_fact:
+      dhcp_sethostname: |
+          # This script sets the machine hostname to the hostname sent from the DHCP server.
+          # If you want to enable this script, change SETHOSTNAME to "yes"
+          # Copyright 2013, 2015, 2017, Cumulus Networks, Inc.  All rights reserved.
+
+          SETHOSTNAME="yes"
+
+          if [ $SETHOSTNAME = "yes" ] && [ ! -z $new_host_name ]
+          then
+              hostname $new_host_name
+              sed --in-place -e "/127\.0\.1\.1/s/^.*$/127.0.1.1  $new_host_name/" /etc/hosts
+          fi
+
+- name: Copy chclient exist hook
+  copy:
+      content: "{{ dhcp_sethostname }}"
+      dest: /etc/dhcp/dhclient-exit-hooks.d/dhcp-sethostname
+  register: dhclient
+
+- name: Restart mgmt interface
+  shell: "ifdown {{ mgmt['port'] }} && ifup {{ mgmt['port'] }}"
+  when: _temp_iface_config is changed or dhclient is changed

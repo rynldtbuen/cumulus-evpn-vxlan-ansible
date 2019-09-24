@@ -3,62 +3,62 @@
   gather_facts: false
   roles:
       - { role: setup, tags: always }
-      - { role: loopback, tags: [loopback, bgp-evpn, mlag-peerlink, vxlan] }
-      - { role: mlag-peerlink, tags: [mlag-peerlink, mlag-bonds, vxlan, svi] }
-      - { role: mlag-bonds, tags: [mlag-bonds, vxlan, svi] }
+      - { role: loopback, tags: [loopback, peerlink, bond, vxlan, svi, bgp] }
+      - { role: peerlink, tags: [peerlink, bond, vxlan, svi] }
+      - { role: bond, tags: [bond, vxlan, svi] }
       - { role: vxlan, tags: [vxlan, svi] }
-      - { role: svi, tags: svi }
-      - { role: ip-interfaces, tags: [ip-interfaces, bgp-evpn] }
-      - { role: route-maps, tags: [route-map, bgp-evpn] }
-      - { role: bgp-evpn, tags: bgp-evpn }
+      - { role: svi, tags: [svi] }
+      - { role: ip-interface, tags: [ip-interface, bgp] }
+      - { role: route-map, tags: [route-map, bgp] }
+      - { role: vrf, tags: [vrf, bgp] }
+      - { role: bgp, tags: bgp }
       - { role: reset, tags: [never, reset] }
       - { role: upgrade, tags: [never, upgrade] }
 
 - name: EDGE
   hosts: edge
   gather_facts: false
-  connection: network_cli
   roles:
       - { role: setup, tags: always }
-      - { role: loopback, tags: [loopback, bgp-evpn, mlag-peerlink, vxlan] }
-      - { role: ip-interfaces, tags: [ip-interfaces, bgp-evpn] }
-      - { role: bgp-evpn, tags: bgp-evpn }
+      - { role: loopback, tags: [loopback, bgp] }
+      - { role: ip-interface, tags: [ip-interface, bgp] }
+      - { role: bgp, tags: bgp }
       - { role: nat, tags: nat }
 
 - name: SERVER
   hosts: server
   gather_facts: false
   roles:
-      - { role: server-interfaces, tags: server-interfaces }
+      - { role: server-interface, tags: server-interface }
       - { role: reset, tags: [never, reset] }
-
-# Required configurations of localhost for new fresh install machine
-- name: LOCALHOST
-  hosts: localhost
-  gather_facts: false
-  tags: ['never', localhost]
-  vars:
-      required_packages: ['dnsmasq', 'sshpass']
-      ansible_user: "{{ lookup('env', 'USER')}}"
-      ssh_dir: "{{ lookup('env', 'HOME') }}/.ssh"
-  tasks:
-      - name: CREATE SSH DIR
-        file:
-            path: "{{ ssh_dir }}"
-            state: directory
-            owner: "{{ ansible_user }}"
-            group: "{{ ansible_user }}"
-
-      - name: GENERATE SSH KEY PAIR
-        openssh_keypair:
-            path: "{{ ssh_dir }}/id_rsa"
-            size: 2048
-            owner: "{{ ansible_user }}"
-            group: "{{ ansible_user }}"
-
-      - name: INSTALL REQUIRED PACKAGES
-        apt:
-            update_cache: yes
-            name: "{{ item }}"
-            state: latest
-        loop: "{{ required_packages }}"
+#
+# # Required configurations of localhost for new fresh installed machine
+# - name: LOCALHOST
+#   hosts: localhost
+#   gather_facts: false
+#   tags: ['never', localhost]
+#   vars:
+#       required_packages: ['dnsmasq', 'sshpass']
+#       ansible_user: "{{ lookup('env', 'USER')}}"
+#       ssh_dir: "{{ lookup('env', 'HOME') }}/.ssh"
+#   tasks:
+#       - name: CREATE SSH DIR
+#         file:
+#             path: "{{ ssh_dir }}"
+#             state: directory
+#             owner: "{{ ansible_user }}"
+#             group: "{{ ansible_user }}"
+#
+#       - name: GENERATE SSH KEY PAIR
+#         openssh_keypair:
+#             path: "{{ ssh_dir }}/id_rsa"
+#             size: 2048
+#             owner: "{{ ansible_user }}"
+#             group: "{{ ansible_user }}"
+#
+#       - name: INSTALL REQUIRED PACKAGES
+#         apt:
+#             update_cache: yes
+#             name: "{{ item }}"
+#             state: latest
+#         loop: "{{ required_packages }}"

@@ -3,8 +3,9 @@
           Delete all configurations? [yes/no]
   register: input
   run_once: true
-  
-- set_fact:
+
+- name: reset
+  set_fact:
       response: |
           {%  set res = input['user_input'] | lower %}
           {{ true  if res == 'yes' or res == 'y' else false }}

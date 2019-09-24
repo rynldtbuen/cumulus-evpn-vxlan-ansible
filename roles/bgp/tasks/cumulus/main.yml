@@ -1,0 +1,43 @@
+- name: Intent config
+  set_fact:
+      intent: |
+          {#  BGP BASE CONFIGS #}
+          net add bgp autonomous-system {{ bgp['as'] }}
+          net add bgp router-id {{ bgp['router_id'] }}
+          net add bgp bestpath as-path multipath-relax
+          {# PEER-GROUP CONFIGS #}
+          {% for group in bgp['peer_groups'] %}
+          net add bgp neighbor {{ group }} peer-group
+          net add bgp neighbor {{ group }} remote-as external
+          net add bgp neighbor {{ group }} capability extended-nexthop
+          {%    if group != 'edge' %}
+          net add bgp l2vpn evpn  neighbor {{ group }} activate
+          {%    endif %}
+          {% endfor %}
+          {# ADD UNDERLY NEIGHBORS #}
+          {% for vrf, v in bgp['neighbors'].items() if vrf == 'default' %}
+          {%    for item in v %}
+          net add bgp neighbor {{ item['neighbor'] }} interface peer-group {{ item['peer_group'][0] }}
+          {%    endfor %}
+          {% endfor %}
+          {# ADVERTISE VNI #}
+          {%  if inventory_hostname not in groups['spine'] %}
+          net add bgp l2vpn evpn  advertise-all-vni
+          {%  endif %}
+          {# APPLY ROUTE-MAP #}
+          net add bgp ipv4 unicast redistribute connected route-map LOOPBACK_ROUTES
+          {# ADD BGP VRF #}
+          {% for vrf, v in bgp['neighbors'].items() if vrf != 'default' %}
+          net add bgp vrf {{ vrf }} autonomous-system {{ bgp['as'] }}
+          net add bgp vrf {{ vrf }} router-id {{ bgp['router_id'] }}
+          net add bgp vrf {{ vrf }} bestpath as-path multipath-relax
+          {%    for item in v %}
+          net add bgp vrf {{ vrf }} neighbor {{ item['neighbor'] }} remote-as external
+          {%    endfor %}
+          net add bgp vrf {{ vrf }} l2vpn evpn  advertise ipv4 unicast
+          {% endfor %}
+
+- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+  cml_bgp:
+      running: "{{ show_config['msg'] }}"
+      intent: "{{ intent }}"

@@ -1,0 +1,6 @@
+- name: Get config variable
+  get_config:
+      vars: ip_interfaces
+
+- include_tasks: "{{ ansible_network_os }}/main.yml"
+  when: ip_interfaces is not none

@@ -1,0 +1,6 @@
+- name: Get config variables
+  get_config:
+      vars: vrf_vni
+
+- include_tasks: vrf-vni-mapping.yml
+  when: vrf_vni is not none

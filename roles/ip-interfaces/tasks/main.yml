@@ -1,7 +1,0 @@
-- name: SET IP INTERFACES VARIABLES
-  set_fact:
-      ip_interfaces: "{{ 'ip_interfaces' | get_config }}"
-  run_once: true
-
-- include_tasks: "{{ ansible_network_os }}/main.yml"
-  when: inventory_hostname in ip_interfaces

@@ -8,7 +8,7 @@
       - include_vars: master.yml
       - include_vars: config_files/hosts_tb_deploy.json
 
-      - name: DNSMASQ RUNNING CONFIG
+      - name: Dnsmasq running config
         command: cat /etc/dnsmasq.conf
         changed_when: false
         register: cat_output
@@ -21,7 +21,7 @@
               ansible-playbook configs.yml -t localhost --skip-tags=always
         when: cat_output is failed
 
-      - name: DUPLICATE MGMT HARDWARE ADDRESS
+      - name: Duplicate mgmt_hwaddr
         set_fact:
             duplicate_mgmt_hwaddr: |
                 {%  set mgmt_hwaddr = {} %}
@@ -42,7 +42,7 @@
                 {{ duplicate_mgmt_hwaddr }}
         when: duplicate_mgmt_hwaddr != '\n'
 
-      - name: NEW HOSTS TO BE DEPLOY TEMPLATE
+      - name: New hosts to be deploy
         set_fact:
             new_hosts: |
                 {%  set dnsmasq_hosts = {} %}
@@ -67,20 +67,20 @@
                 {%  endfor %}
                 {{ _new_hosts + hosts_tb_deploy }}
 
-      - name: UPDATE HOSTS_TB_DEPLOY FILE
+      - name: Copy hosts_tb_deploy.json
         copy:
             content: "{{ {'hosts_tb_deploy': new_hosts} }}"
             dest: config_files/hosts_tb_deploy.json
         register: failed_new_hosts
 
-      - name: DNSMASQ ADDITIONAL HOSTS TEMPLATE
+      - name: Dnsmasq additional hosts
         set_fact:
             dnsmasq_addn_hosts: |
                 {% for host in groups['all'] if hostvars[host]['ansible_host'] is defined %}
                 {{ hostvars[host]['ansible_host'] }} {{ host }}
                 {% endfor %}
 
-      - name: DNSMASQ.CONF TEMPLATE
+      - name: Update dnsmasq config
         set_fact:
             dnsmasq_conf: |
                 # Configuration file documentation http://www.thekelleys.org.uk/dnsmasq/docs/dnsmasq-man.html
@@ -88,17 +88,17 @@
                 bogus-priv
                 no-resolv
                 no-poll
-                server={{ dns_forwarder }}
+                server={{ OOB_MGMT['dns_forwarder'] }}
                 listen-address=127.0.0.1
-                listen-address={{ dns_server }}
+                listen-address={{ OOB_MGMT['dns_server'] }}
                 addn-hosts=/etc/dnsmasq_addn_hosts
                 expand-hosts
-                domain={{ domain }}
-                dhcp-range={{ dhcp_range }}
+                domain={{ OOB_MGMT['domain'] }}
+                dhcp-range={{ OOB_MGMT['dhcp_range'] }}
 
                 # DHCP OPTIONS
-                dhcp-option=tag:network_dev,3,{{ gateway_address }}
-                dhcp-option=tag:server,121,0.0.0.0/0,{{ gateway_address }}:100
+                dhcp-option=tag:network_dev,3,{{ OOB_MGMT['gateway_address'] }}
+                dhcp-option=tag:server,121,0.0.0.0/0,{{ OOB_MGMT['gateway_address'] }}:100
 
                 # DHCP STATIC NETWORK DEVICES
                 {% for host in groups['cumulus'] | sort if hostvars[host]['mgmt_hwaddr'] != '' %}
@@ -110,14 +110,14 @@
                 dhcp-host={{ hostvars[host]['mgmt_hwaddr'] }},{{ host }},set:server
                 {% endfor %}
 
-      - name: UPDATE DNSMASQ_ADDN_HOSTS FILE
+      - name: Copy dnsmasq_addn_hosts
         copy:
             content: '{{ dnsmasq_addn_hosts }}'
             dest: '/etc/dnsmasq_addn_hosts'
         diff: true
         register: addn_hosts
 
-      - name: UPDATE DNSMASQ.CONF FILE
+      - name: Copy dnsmasq.conf
         copy:
             content: '{{ dnsmasq_conf }}'
             dest: '/etc/dnsmasq.conf'
@@ -125,10 +125,10 @@
         register: dnsmasq
 
       - block:
-          - name: TEST DNSMASQ CONFIG
+          - name: Test dnsmasq config
             shell: 'dnsmasq --test'
 
-          - name: RESTART DNSMASQ SERVICE
+          - name: Restart dnsmasq service
             systemd:
                 name: dnsmasq
                 state: restarted
@@ -141,7 +141,7 @@
   gather_facts: false
   tasks:
 
-    - name: NEW HOSTS_TB_DEPLOY TEMPLATE
+    - name: Update hosts_tb_deploy
       set_fact:
           _hosts_tb_deploy: |
               {%  set x = [] %}
@@ -155,10 +155,8 @@
               {%    endif %}
               {%  endfor %}
               {{ {'hosts_tb_deploy': new_hosts | difference(x)} }}
-      when: new_hosts | length > 0
 
-    - name: UPDATE HOSTS_TB_DEPLOY FILE
+    - name: Copy updated hosts_tb_deploy.json
       copy:
           content: "{{ _hosts_tb_deploy }}"
           dest: config_files/hosts_tb_deploy.json
-      when: new_hosts | length > 0

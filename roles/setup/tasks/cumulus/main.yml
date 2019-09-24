@@ -1,14 +1,7 @@
-- block:
-    - name: ABORT ALL PENDING CHANGES
-      nclu:
-          commands:
-            - abort
-      changed_when: false
-
-    - name: NET SHOW CONFIGURATION COMMANDS
-      nclu:
-          commands:
-            - show configuration commands
-      register: confg_commands
-      changed_when: false
+- name: Show config commands
+  nclu:
+      commands:
+        - show configuration commands
+  register: show_config
+  changed_when: false
   check_mode: false

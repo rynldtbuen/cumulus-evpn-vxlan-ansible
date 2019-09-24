@@ -1,0 +1,56 @@
+- name: Intent config
+  set_fact:
+      intent: |
+          {% for interface, v in ip_interfaces.items() %}
+          net add interface {{ interface }} ip address {{ v['address'] }}
+          {%    if v['vrf'] is not none %}
+          net add interface {{ interface }} vrf {{ v['vrf'] }}
+          {%    endif %}
+          {% endfor %}
+
+- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+  cml_ip_interface:
+      running: "{{ show_config['msg'] }}"
+      intent: "{{ intent }}"
+
+# - block:
+#     - include_tasks: intent_template.yml
+#
+#     - name: Intent config
+#       set_fact:
+#           intent_cfg: "{{ intent_template.splitlines() }}"
+#
+#     - name: Running config
+#       set_fact:
+#           running_cfg: "{{ show_config['msg'] | find_cfg('.*interface (?!eth0)(\\w+\\D\\d+) .*') }}"
+#
+#     - name: NCLU del/add commands
+#       set_fact:
+#           nclu: "{{ 'interface' | interface_nclu(running_cfg, intent_cfg, ip_interfaces) }}"
+#
+#     - name: Delete config
+#       nclu:
+#           template: |
+#               {% for cfg in nclu['del'] %}
+#               {{ cfg }}
+#               {% endfor %}
+#       changed_when: not ansible_check_mode
+#       when: nclu['del'] | length > 0
+#
+#     - name: Add config
+#       nclu:
+#           template: |
+#               {% for cfg in nclu['add'] %}
+#               {{ cfg }}
+#               {% endfor %}
+#       changed_when: not ansible_check_mode
+#       when: nclu['add'] | length > 0
+#
+#     - name: "{{ 'Commited changes' if not ansible_check_mode else 'Pending changes' }}"
+#       nclu:
+#           commands:
+#           - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+#       when: nclu['del'] | length > 0 or nclu['add'] | length > 0
+#       changed_when: not ansible_check_mode
+#       tags: [print_action]
+#   check_mode: false

@@ -1,53 +1,9 @@
-- block:
-    - name: LO RUNNING CONFIGURATION COMMANDS
-      set_fact:
-          runconfgs: "{{ showconfg['stdout']
-              | regex_findall('set interfaces loopback.*') }}"
+- name: Intent config
+  set_fact:
+      intent: |
+          set interfaces loopback lo address '{{ loopback['ip'] }}'
 
-    #***** Change 'intent.yml' file for intent configurations commands *****#
-    - include_tasks: intent.yml
-
-    - name: LO CONFIGURATION COMMANDS
-      set_fact:
-          config_commands: |
-              {%  set _intentconfgs = intentconfgs.split('\n') |
-                      reject('equalto', '') | list %}
-              {%  for confg in runconfgs if confg not in _intentconfgs %}
-              {{ confg.replace('set', 'delete') }}
-              {%  endfor %}
-              {%  for confg in _intentconfgs if confg not in runconfgs %}
-              {{ confg }}
-              {%  endfor %}
-
-    - block:
-        - name: UPDATE LOOPBACK.CONF
-          copy:
-              content: "{{ config_commands }}"
-              dest: "config_files/{{ inventory_hostname }}-loopback.conf"
-          delegate_to: localhost
-          changed_when: false
-
-        - name: PUSH LO CONFIGURATION COMMANDS
-          napalm_install_config:
-              hostname: "{{ inventory_hostname }}"
-              username: "{{ ansible_user }}"
-              dev_os: "{{ ansible_network_os }}"
-              password: "{{ ansible_ssh_pass }}"
-              config_file: "config_files/{{ inventory_hostname }}-loopback.conf"
-              commit_changes: "{{ not ansible_check_mode }}"
-          changed_when: not ansible_check_mode
-          register: result
-
-        - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
-          debug:
-              msg: |
-                  {{ result.msg }}
-                  # Set-style configuration commands #
-                  ====================================
-                  {%  for config in config_commands.split('\n') | reject('equalto', '') | list  %}
-                  {{ config }}
-                  {%  endfor %}
-          changed_when: not ansible_check_mode
-          tags: [print_action]
-      when: config_commands != '\n'
-  check_mode: false
+- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+  vyos_loopback:
+      running: "{{ show_config['stdout'] }}"
+      intent: "{{ intent }}"

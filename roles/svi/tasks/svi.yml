@@ -1,0 +1,65 @@
+- name: Intent config
+  set_fact:
+      intent: |
+          {% for interface, v in svi.items() %}
+          {%    if v['ip'] %}
+          net add vlan {{ interface }} ip address {{ v['ip'] }}
+          net add vlan {{ interface }} ip address-virtual {{ v['virtual_hwaddr'] }} {{ v['virtual_ip'] }}
+          net add vlan {{ interface }} vrf {{ v['vrf'] }}
+          {%    elif v['router_hwaddr'] %}
+          net add vlan {{ interface }} vrf {{ v['vrf'] }}
+          net add vlan {{ interface }} hwaddress {{ v['router_hwaddr'] }}
+          {%    else %}
+          net add vlan {{ interface }} vrf {{ v['vrf'] }}
+          {%    endif %}
+          {% endfor %}
+
+- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+  cml_svi:
+      running: "{{ show_config['msg'] }}"
+      intent: "{{ intent }}"
+
+# - block:
+#     - include_tasks: intent_template.yml
+#
+#     - name: Intent config
+#       set_fact:
+#           intent_cfg: "{{ intent_template.splitlines() }}"
+#
+#     - name: Running config
+#       set_fact:
+#           running_cfg: "{{ show_config['msg'] | find_cfg('net add vlan.*') }}"
+#
+#     - name: NCLU del/add commands
+#       set_fact:
+#           nclu: "{{ 'vlan' | interface_nclu(running_cfg, intent_cfg, svi) }}"
+#
+#     - name: Delete config
+#       nclu:
+#           template: |
+#               {% for cfg in nclu['del'] %}
+#               {{ cfg }}
+#               {% endfor %}
+#       changed_when: not ansible_check_mode
+#       when: nclu['del'] | length > 0
+#       register: del_svi
+#
+#     - name: Add config
+#       nclu:
+#           template: |
+#               {% for cfg in nclu['add'] %}
+#               {{ cfg }}
+#               {% endfor %}
+#       changed_when: not ansible_check_mode
+#       when: nclu['add'] | length > 0
+#       register: add_svi
+#
+#     - name: "{{ 'Commited changes' if not ansible_check_mode else 'Pending changes' }}"
+#       nclu:
+#           commands:
+#           - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+#       when: nclu['del'] | length > 0 or nclu['add'] | length > 0
+#       changed_when: not ansible_check_mode
+#       tags: [print_action]
+#   when: svi is not none
+#   check_mode: false

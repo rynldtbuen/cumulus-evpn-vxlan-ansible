@@ -1,30 +1,55 @@
-- block:
-    - name: LO RUNNING CONFIGURATION COMMANDS
-      set_fact:
-          runconfgs: "{{ confg_commands['msg']
-              | regex_findall('net add loopback lo.*') }}"
+- name: Intent config
+  set_fact:
+      intent: |
+          net add loopback lo ip address {{ loopback['ip'] }}
+          {% if loopback['clag_anycast_ip'] is defined %}
+          net add loopback lo clag vxlan-anycast-ip {{ loopback['clag_anycast_ip'] }}
+          {% endif %}
 
-    #***** Change 'intent.yml' file for intent configurations commands *****#
-    - include_tasks: intent.yml
+- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+  cml_loopback:
+      running: "{{ show_config['msg'] }}"
+      intent: "{{ intent }}"
 
-    - name: PUSH LO INTENT CONFIGURATION COMMANDS
-      nclu:
-          template: |
-              {%  set _intentconfgs = intentconfgs.split('\n')
-                    | reject('equalto', '') | list %}
-              {%  for confg in runconfgs if confg not in _intentconfgs %}
-              {{ confg.replace('net add', 'del') }}
-              {%  endfor %}
-              {%  for confg in _intentconfgs if confg not in runconfgs %}
-              {{ confg.replace('net add', 'add') }}
-              {%  endfor %}
-      register: loopback_ips_
 
-    - name: "{{ 'COMMITTED CHANGES' if not ansible_check_mode else 'PENDING CHANGES' }}"
-      nclu:
-          commands:
-          - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
-      when: loopback_ips_ is changed
-      changed_when: not ansible_check_mode
-      tags: [print_action]
-  check_mode: false
+# - block:
+#     - include_tasks: intent_template.yml
+#
+#     - name: Intent config
+#       set_fact:
+#           intent_cfg: "{{ intent_template.splitlines() }}"
+#
+#     - name: Running config
+#       set_fact:
+#           running_cfg: "{{ show_config['msg'] | find_cfg('net add loopback lo.*') }}"
+#
+#     - name: NCLU del/add commands
+#       set_fact:
+#           nclu: "{{ role_name | nclu(running_cfg, intent_cfg) }}"
+#
+#     - name: Delete config
+#       nclu:
+#           template: |
+#               {% for cfg in nclu['del'] %}
+#               {{ cfg }}
+#               {% endfor %}
+#       changed_when: not ansible_check_mode
+#       when: nclu['del'] | length > 0
+#
+#     - name: Add config
+#       nclu:
+#           template: |
+#               {% for cfg in nclu['add'] %}
+#               {{ cfg }}
+#               {% endfor %}
+#       changed_when: not ansible_check_mode
+#       when: nclu['add'] | length > 0
+#
+#     - name: "{{ 'Commited changes' if not ansible_check_mode else 'Pending changes' }}"
+#       nclu:
+#           commands:
+#           - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+#       when: nclu['del'] | length > 0 or nclu['add'] | length > 0
+#       changed_when: not ansible_check_mode
+#       tags: [print_action]
+#   check_mode: false

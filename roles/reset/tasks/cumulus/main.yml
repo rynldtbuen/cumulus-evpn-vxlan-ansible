@@ -1,10 +1,10 @@
-- name: DELETE ALL CONFIGURATIONS
+- name: Deleting all configurations
   nclu:
       commands:
           - del all
       commit: true
   register: del_all
 
-- name: REBOOT THE DEVICE
+- name: Rebooting
   reboot:
   when: del_all is changed

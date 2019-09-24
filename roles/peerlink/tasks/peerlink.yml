@@ -1,0 +1,95 @@
+- name: Intent config
+  set_fact:
+      intent: |
+          net add bond peerlink bond slaves {{ peerlink['interfaces'] }}
+          net add interface peerlink.4094 clag backup-ip {{ peerlink['backup_ip'] }}
+          net add interface peerlink.4094 clag peer-ip {{ peerlink['peer_ip'] }}
+          net add interface peerlink.4094 clag priority {{ peerlink['role'] }}
+          net add interface peerlink.4094 clag sys-mac {{ peerlink['sys_mac'] }}
+          net add interface peerlink.4094 ip address {{ peerlink['ip'] }}
+
+- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+  cml_peerlink:
+      running: "{{ show_config['msg'] }}"
+      intent: "{{ intent }}"
+
+# - block:
+#     - include_tasks: intent.yml
+#
+#     - name: Intent config
+#       set_fact:
+#           intent_cfg: "{{ intent_template.splitlines() }}"
+#
+#     - name: Running config
+#       set_fact:
+#           running_cfg: "{{ show_config['msg'] | find_cfg('net add (interface|bond) peerlink.(\\d+|bond).*') }}"
+#
+#     - name: NCLU del/add commands
+#       set_fact:
+#           nclu: "{{ running_cfg | peerlink_nclu(intent_cfg, peerlink) }}"
+#
+#     - name: Delete slaves
+#       nclu:
+#           template: |
+#               {% for cfg in nclu['del'] %}
+#               {{ cfg }}
+#               {% endfor %}
+#       changed_when: not ansible_check_mode
+#       when: nclu['del'] | length > 0
+#
+#     - name: Add config
+#       nclu:
+#           template: |
+#               {% for cfg in nclu['add'] %}
+#               {{ cfg }}
+#               {% endfor %}
+#       changed_when: not ansible_check_mode
+#       when: nclu['add'] | length > 0
+#       register: add_peerlink
+#
+#     - block:
+#         - name: Delete bond conflict
+#           nclu:
+#               template: |
+#                   {% set del_bond = add_peerlink['msg'] | regex_findall('(?<=enslaved to )\w+') %}
+#                   {% for bond in del_bond %}
+#                   del bond {{ bond }}
+#                   {% endfor %}
+#               abort: true
+#
+#         - name: "{{ 'Commited changes' if not ansible_check_mode else 'Pending changes' }}"
+#           nclu:
+#               commands:
+#               - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+#           register: commit_peerlink_conflict
+#           changed_when: not ansible_check_mode
+#           tags: [print_action]
+#
+#         - name: Fail bond conflict
+#           fail:
+#               msg: |
+#                   {% for er in add_peerlink['msg'] | regex_findall('interface \\w+ is already enslaved to \\w+') %}
+#                   {{ er }}
+#                   {% endfor %}
+#
+#                   The pending changes above must be committed first by
+#                   running the command below to avoid error in the later commit.
+#                   $ ansible-playbook configs.yml -l {{ inventory_hostname }} -t bond
+#           when: ansible_check_mode
+#
+#         - name: End play
+#           meta: end_play
+#       when: add_peerlink['msg'] is defined and (add_peerlink['msg'] | regex_findall('interface \\w+ is already enslaved to \\w+')) | length > 0
+#
+#     # - name: End play
+#     #   meta: end_play
+#     #   when: commit_peerlink_conflict is defined and commit_peerlink_conflict is changed
+#
+#     - name: "{{ 'Commited changes' if not ansible_check_mode else 'Pending changes' }}"
+#       nclu:
+#           commands:
+#           - "{{ 'commit' if not ansible_check_mode else 'pending' }}"
+#       when: nclu['del'] | length > 0 or nclu['add'] | length > 0
+#       tags: [print_action]
+#   when: peerlink is not none
+#   check_mode: false
