@@ -14,7 +14,7 @@
           {%    endif %}
           {% endfor %}
 
-- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+- name: "{{ 'Committed changes ' if not ansible_check_mode else 'Pending changes' }}"
   cml_svi:
       running: "{{ show_config['msg'] }}"
       intent: "{{ intent }}"

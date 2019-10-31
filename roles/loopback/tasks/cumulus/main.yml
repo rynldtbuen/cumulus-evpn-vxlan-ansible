@@ -6,11 +6,10 @@
           net add loopback lo clag vxlan-anycast-ip {{ loopback['clag_anycast_ip'] }}
           {% endif %}
 
-- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+- name: "{{ 'Committed changes ' if not ansible_check_mode else 'Pending changes' }}"
   cml_loopback:
       running: "{{ show_config['msg'] }}"
       intent: "{{ intent }}"
-
 
 # - block:
 #     - include_tasks: intent_template.yml

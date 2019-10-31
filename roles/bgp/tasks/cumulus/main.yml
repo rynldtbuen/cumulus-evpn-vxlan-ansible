@@ -37,7 +37,7 @@
           net add bgp vrf {{ vrf }} l2vpn evpn  advertise ipv4 unicast
           {% endfor %}
 
-- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+- name: "{{ 'Committed changes ' if not ansible_check_mode else 'Pending changes' }}"
   cml_bgp:
       running: "{{ show_config['msg'] }}"
       intent: "{{ intent }}"

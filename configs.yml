@@ -12,12 +12,14 @@
       - { role: route-map, tags: [route-map, bgp] }
       - { role: vrf, tags: [vrf, bgp] }
       - { role: bgp, tags: bgp }
+      # Role that wound not run unless specify their tags
       - { role: reset, tags: [never, reset] }
       - { role: upgrade, tags: [never, upgrade] }
+      - { role: netq, tags: [never, netq] }
 
 - name: EDGE
   hosts: edge
-  gather_facts: false
+  gather_facts: no
   roles:
       - { role: setup, tags: always }
       - { role: loopback, tags: [loopback, bgp] }
@@ -27,38 +29,52 @@
 
 - name: SERVER
   hosts: server
-  gather_facts: false
+  gather_facts: no
   roles:
       - { role: server-interface, tags: server-interface }
+      # Role that wound not run unless specify their tags
       - { role: reset, tags: [never, reset] }
-#
-# # Required configurations of localhost for new fresh installed machine
-# - name: LOCALHOST
-#   hosts: localhost
-#   gather_facts: false
-#   tags: ['never', localhost]
-#   vars:
-#       required_packages: ['dnsmasq', 'sshpass']
-#       ansible_user: "{{ lookup('env', 'USER')}}"
-#       ssh_dir: "{{ lookup('env', 'HOME') }}/.ssh"
-#   tasks:
-#       - name: CREATE SSH DIR
-#         file:
-#             path: "{{ ssh_dir }}"
-#             state: directory
-#             owner: "{{ ansible_user }}"
-#             group: "{{ ansible_user }}"
-#
-#       - name: GENERATE SSH KEY PAIR
-#         openssh_keypair:
-#             path: "{{ ssh_dir }}/id_rsa"
-#             size: 2048
-#             owner: "{{ ansible_user }}"
-#             group: "{{ ansible_user }}"
-#
-#       - name: INSTALL REQUIRED PACKAGES
-#         apt:
-#             update_cache: yes
-#             name: "{{ item }}"
-#             state: latest
-#         loop: "{{ required_packages }}"
+      - { role: netq, tags: [never, netq] }
+
+# Required configurations of localhost for new fresh installed machine
+- name: LOCALHOST
+  hosts: localhost
+  gather_facts: no
+  tags: ['never', localhost]
+  vars:
+      required_packages: ['dnsmasq', 'sshpass', 'redis-server', redis-tools]
+      # ansible_user: "{{ lookup('env', 'USER')}}"
+      ssh_dir: "{{ lookup('env', 'HOME') }}/.ssh"
+  tasks:
+      # - name: Create ssh dir
+      #   file:
+      #       path: "{{ ssh_dir }}"
+      #       state: directory
+      #       owner: "{{ ansible_user }}"
+      #       group: "{{ ansible_user }}"
+      #
+      # - name: Generate ssh key pair
+      #   openssh_keypair:
+      #       path: "{{ ssh_dir }}/id_rsa"
+      #       size: 2048
+      #       owner: "{{ ansible_user }}"
+      #       group: "{{ ansible_user }}"
+
+      - name: INSTALL REQUIRED PACKAGES
+        apt:
+            update_cache: yes
+            name: "{{ item }}"
+            state: latest
+        loop: "{{ required_packages }}"
+
+      - name: Add bind line
+        lineinfile:
+          path: /etc/redis/redis.conf
+          insertbefore: '^bind 127.0.0.1 ::1'
+          line: 'bind 172.24.0.10'
+
+      - name: Restart redis service
+        systemd:
+            name: redis-server
+            state: restart
+            enabled: yes

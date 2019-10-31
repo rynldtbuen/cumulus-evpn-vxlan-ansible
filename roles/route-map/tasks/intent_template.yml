@@ -1,4 +1,0 @@
-- name: Intent template
-  set_fact:
-      intent_template: |
-          net add routing route-map LOOPBACK_ROUTES permit 10 match interface lo

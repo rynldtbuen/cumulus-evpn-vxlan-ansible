@@ -1,0 +1,22 @@
+- name: Add Cumulus Apt Key
+  apt_key:
+      url: "https://apps3.cumulusnetworks.com/setup/cumulus-apps-deb.pubkey"
+      state: present
+
+- name: Add netq repo
+  apt_repository:
+      repo: deb http://apps3.cumulusnetworks.com/repos/deb xenial netq-1.4
+      state: present
+      update_cache: yes
+
+- name: Install netq
+  apt:
+      name: cumulus-netq
+      state: latest
+      update_cache: yes
+
+- name: Add netq config
+  command: "{{ item }}"
+  loop:
+    - netq config add server 172.24.0.10
+    - netq config restart agent

@@ -1,4 +1,4 @@
-# This play is imported by the deploy.yml do not use as a standalone play
+# This playbook is imported by the deploy.yml do not use as a standalone playbook
 
 - name: PROVISION
   hosts: "{{ hostvars['localhost']['new_hosts'] }}"
@@ -51,21 +51,15 @@
         tags: [print_action]
       - reboot:
 
-      - name: DEPLOY SSH KEY
+      - name: Deploy ssh key
         authorized_key:
             user: "{{ ansible_user }}"
             key: "{{ lookup('file', '/home/%s/.ssh/id_rsa.pub' | format(lookup('env', 'USER'))) }}"
             state: present
         register: ssh_key
 
-      - name: ADD MGMT VRF
-        nclu:
-            commands:
-            - add vrf mgmt
-            commit: true
-        async: 5
-        poll: 0
-        when: inventory_hostname in groups['cumulus']
-        changed_when: false
+      - include_role:
+            name: netq
+        when: ansible_network_os == 'cumulus' or ansible_network_os == 'server'
 
       - set_fact: deployed="{{ true }}"

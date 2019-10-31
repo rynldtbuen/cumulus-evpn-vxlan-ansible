@@ -8,7 +8,7 @@
          set protocols bgp {{ bgp['as'] }} neighbor {{ item['neighbor'] }} remote-as '{{ item['remote_as'] }}'
          {%  endfor %}
 
-- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+- name: "{{ 'Committed changes ' if not ansible_check_mode else 'Pending changes' }}"
   vyos_bgp:
       running: "{{ show_config['stdout'] }}"
       intent: "{{ intent }}"

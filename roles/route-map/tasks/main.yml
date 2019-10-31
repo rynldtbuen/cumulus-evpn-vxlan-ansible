@@ -1,13 +1,4 @@
-- block:
-    - name: Intent config
-      set_fact:
-          intent: |
-              net add routing route-map LOOPBACK_ROUTES permit 10 match interface lo
-
-    - name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
-      cml_route_map:
-          running: "{{ show_config['msg'] }}"
-          intent: "{{ intent }}"
+- include_tasks: route-map.yml
   when: inventory_hostname in groups['cumulus']
 
 # - block:

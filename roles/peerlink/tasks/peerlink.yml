@@ -8,7 +8,7 @@
           net add interface peerlink.4094 clag sys-mac {{ peerlink['sys_mac'] }}
           net add interface peerlink.4094 ip address {{ peerlink['ip'] }}
 
-- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+- name: "{{ 'Commited changes' if not ansible_check_mode else 'Pending changes' }}"
   cml_peerlink:
       running: "{{ show_config['msg'] }}"
       intent: "{{ intent }}"

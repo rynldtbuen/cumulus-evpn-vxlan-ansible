@@ -1,0 +1,3 @@
+test/
+filter_plugins/__pycache__/
+action_plugins/__pycache__/

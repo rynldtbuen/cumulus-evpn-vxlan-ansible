@@ -1,0 +1,14 @@
+- name: Intent config
+  set_fact:
+      intent: |
+          {% for rule, v in nat.items() %}
+          set nat source rule {{ rule }} outbound-interface '{{ v['interface'] }}'
+          set nat source rule {{ rule }} source address '{{ v['source'] }}'
+          set nat source rule {{ rule}} translation address 'masquerade'
+          set nat source rule {{ rule }} description '{{ v['description'] }}'
+          {% endfor %}
+
+- name: "{{ 'Committed changes ' if not ansible_check_mode else 'Pending changes' }}"
+  vyos_nat:
+      running: "{{ show_config['stdout'] }}"
+      intent: "{{ intent }}"

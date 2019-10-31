@@ -1,11 +1,9 @@
 - name: Intent config
   set_fact:
       intent: |
-          {% for vrf, vni in vrf_vni.items() %}
-          net add vrf {{ vrf }} vni {{ vni }}
-          {% endfor %}
+          net add routing route-map LOOPBACK_ROUTES permit 10 match interface lo
 
 - name: "{{ 'Committed changes ' if not ansible_check_mode else 'Pending changes' }}"
-  cml_vrf:
+  cml_route_map:
       running: "{{ show_config['msg'] }}"
       intent: "{{ intent }}"

@@ -10,7 +10,8 @@ from cumulus_custom_plugins.helpers import get_run_block_config, get_diff_comman
 
 class ActionModule(ActionBase):
 
-    CONFIG_RE = re.compile(r'net add (interface|bond) peerlink.(\d+|bond).*')
+    CONFIG_RE = re.compile(
+        r'net add (interface|bond) peerlink.(\d+|bond).*|net add bridge bridge ports.*')
     FAILD_MSG = [
         re.compile(r'\w+ is not a physical interface on this switch'),
     ]
@@ -18,11 +19,18 @@ class ActionModule(ActionBase):
     def _get_commands(self, running, intent, dev_os):
         ''' Return a list of net add/del commands based on running and intent config '''
 
+        bridge_ports = None
+
         if len(running) > 0:
+
             running.pop(0)
             intent.pop(0)
 
-        diff = get_diff_commands(running, intent, dev_os)
+            _bridge_ports = re.findall(
+                'net add bridge bridge ports (?P<ports>\\S+)', '\n'.join(running))
+
+            bridge_ports = _bridge_ports[0].split(',')
+            running.remove('net add bridge bridge ports %s' % _bridge_ports[0])
 
         for item in intent:
             m = re.match(self.CONFIG_RE, item)
@@ -30,6 +38,11 @@ class ActionModule(ActionBase):
                 raise AnsibleError('regex does not include config: %s' % item)
 
         _add = [i.replace('net add', 'add') for i in intent if i not in running]
+
+        if bridge_ports is None or 'peerlink' not in bridge_ports:
+            _add.append('add bridge bridge ports peerlink')
+
+        diff = get_diff_commands(running, intent, dev_os)
 
         return _add, "\n".join(diff)
 

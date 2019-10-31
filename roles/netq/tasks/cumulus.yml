@@ -1,0 +1,36 @@
+- name: Check if management VRF is enabled
+  command: ip vrf identify
+  register: check_vrf
+
+- name: Add mgmt VRF
+  command: "{{ item }}"
+  loop:
+    - net add vrf mgmt
+    - net commit
+  async: 1
+  poll: 0
+  when: check_vrf['stdout'] != "mgmt"
+  register: add_mgmt_vrf
+
+- name: Reconnect to switch
+  wait_for_connection:
+      delay: 3
+  when: check_vrf['stdout'] != "mgmt"
+
+- name: Add netq repo
+  apt_repository:
+      repo: deb http://apps3.cumulusnetworks.com/repos/deb CumulusLinux-3 netq-1.4
+      state: present
+      update_cache: yes
+
+- name: Install netq
+  apt:
+      name: cumulus-netq
+      state: latest
+      update_cache: yes
+
+- name: Add netq config
+  command: "{{ item }}"
+  loop:
+    - netq config add server 172.24.0.10 vrf mgmt
+    - netq config restart agent

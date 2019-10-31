@@ -1,99 +1,93 @@
-VLANS:
-  tenant1:
-    - { vid: "500", name: "vlan500", allow_nat: true }
-    - { vid: "501", name: "vlan501", cidr: "192.168.100.0/24" }
-    - { vid: "502", name: "vlan502", cidr: "192.168.101.0/24" }
-    - { vid: "510", name: "vlan502", }
-  tenant2:
-    - { vid: "600", name: "vlan600", allow_nat: true }
-    - { vid: "601", name: "vlan500", }
-  # tenant3:
-  #   - { vid: "700", name: "vlan500", allow_nat: true }
-  #   - { vid: "701", name: "vlan500", }
-  # tenant4:
-  #   - { vid: "700", name: "vlan500", allow_nat: true }
-  #   - { vid: "701", name: "vlan500", }
+vlans:
+  tenants:
+      tenant1:
+        - { id: "500", name: "vlan500", nat: true }
+        - { id: "501", name: "vlan501",}
+        - { id: "502", name: "vlan502",}
+      # tenant2:
+      #   - { id: "600", name: "vlan600", nat: true }
+      #   - { id: "601", name: "vlan601", cidr: "192.168.105.0/24" }
+      #   - { id: "602", name: "vlan602", }
+      #   - { id: "603", name: "vlan603", }
 
-MLAG:
-  rack1:
-      peerlink_interfaces: swp23-24
-      bonds:
-        - { name: bond0, slaves: "swp1", vids: "500,501" }
-        - { name: bond1, slaves: "swp2", vids: "600,601" }
-  rack2:
-      peerlink_interfaces: swp23-24
-      bonds:
-        - { name: bond0, slaves: "swp1", vids: "500-501" }
-  rack3:
-      peerlink_interfaces: swp23-24
-      bonds:
-        - { name: bond0, slaves: "swp1", vids: "500-501" }
+  base_cidr: "10.0.0.0/16"
+  default_prefixlen: 24
 
-SERVER_INTERFACES:
-  server1:
-      mgmt_port: "ens3"
-      bonds:
-          rack1:
-            - { name: "bond0", slaves: "ens4-5"}
-  server2:
-      mgmt_port: "ens3"
-      bonds:
-          rack2:
-            - { name: "bond0", slaves: "ens4-5"}
-  server3:
-      mgmt_port: "ens3"
-      bonds:
-          rack2:
-            - { name: "bond0", slaves: "ens4-5"}
 
-NETWORK_LINKS:
+topology:
   fabric:
       links:
-        - 'spine1:swp1 -- leaf1:swp21'
-        - 'spine1:swp2 -- leaf2:swp21'
-        - 'spine1:swp3 -- leaf3:swp21'
-        - 'spine1:swp4 -- leaf4:swp21'
-        - 'spine1:swp5 -- leaf5:swp21'
-        - 'spine1:swp6 -- leaf6:swp21'
-        - 'spine2:swp1 -- leaf1:swp22'
-        - 'spine2:swp2 -- leaf2:swp22'
-        - 'spine2:swp3 -- leaf3:swp22'
-        - 'spine2:swp4 -- leaf4:swp22'
-        - 'spine2:swp5 -- leaf5:swp22'
-        - 'spine2:swp6 -- leaf6:swp22'
-        - 'spine1:swp23 -- border1:swp23'
-        - 'spine1:swp24 -- border2:swp23'
-        - 'spine2:swp23 -- border1:swp24'
-        - 'spine2:swp24 -- border2:swp24'
+          - 'spine1:swp1 -- leaf1:swp21'
+          - 'spine1:swp2 -- leaf2:swp21'
+          - 'spine1:swp3 -- leaf3:swp21'
+          - 'spine1:swp4 -- leaf4:swp21'
+          # - 'spine1:swp5 -- leaf5:swp21'
+          # - 'spine1:swp6 -- leaf6:swp21'
+          - 'spine2:swp1 -- leaf1:swp22'
+          - 'spine2:swp2 -- leaf2:swp22'
+          - 'spine2:swp3 -- leaf3:swp22'
+          - 'spine2:swp4 -- leaf4:swp22'
+          # - 'spine2:swp5 -- leaf5:swp22'
+          # - 'spine2:swp6 -- leaf6:swp22'
+          - 'spine1:swp23 -- border1:swp23'
+          - 'spine1:swp24 -- border2:swp23'
+          - 'spine2:swp23 -- border1:swp24'
+          - 'spine2:swp24 -- border2:swp24'
         # - 'spine[1-2]:swp1 -- leaf[1-4]:swp21'
         # - 'spine[1-2]:swp23 -- border[1-2]:swp23'
       type: unnumbered
   external_connectivity:
       links:
-        - 'edge1:eth0 -- border1:swp1'
-        - 'edge1:eth1 -- border2:swp1'
-        # - 'edge1:eth0 -- border[1-2]:swp1'
+          - 'edge1:eth0 -- border1:swp1'
+          - 'edge1:eth1 -- border2:swp1'
+          # - 'edge1:eth0 -- border[1-2]:swp1'
       type: sub_interface
+      base_cidr: '192.168.254.0/23'
 
-BASE_CIDRS:
-  loopback: "192.168.0.0/22"
-  clag_vxlan_anycast: "192.168.8.0/23"
-  vlan: "10.0.0.0/16"
-  external_connectivity: "192.168.254.0/23"
-  oob_management: "172.24.0.0/24"
+mlag:
+  pod1-rack1:
+      peers: 'leaf1,leaf2'
+      peerlink_interfaces: swp23-24
+      bonds:
+        - { name: bond0, slaves: "swp1", vids: "500,501" }
+        # - { name: bond1, slaves: "swp2", vids: "500,501" }
+        # - { name: bond2, slaves: "swp3", vids: "500,501" }
 
-BASE_BGP_AS:
-  spine: 64512
-  edge: 64530
-  border: 64550
-  leaf: 64580
+        # - { name: bond1, slaves: "swp2", vids: "500,501" }
+  # pod1-rack2:
+  #     peers: 'leaf3,leaf4'
+  #     peerlink_interfaces: swp23-24
+  #     bonds:
+  #       - { name: bond0, slaves: "swp1", vids: "500-501" }
+  # pod2-rack1:
+  #     peers: 'leaf5,leaf6'
+  #     peerlink_interfaces: swp23-24
+  #     bonds:
+  #       - { name: bond0, slaves: "swp1", vids: "500-501" }
 
-IP_INTERFACES:
+server_interfaces:
+    server1:
+        mgmt_port: "ens3"
+        bonds:
+            - { uplink: "rack1", name: "bond0", slaves: "ens4-5"}
+    server2:
+        mgmt_port: "ens3"
+        bonds:
+            - { uplink: "rack2", name: "bond0", slaves: "ens4-5"}
+    server4:
+        mgmt_port: "ens3"
+        bonds:
+            - { uplink: "rack1", name: "bond0", slaves: "ens4-5"}
+
+ip_interfaces:
   edge1:
-    - { name: "eth3", address: "dhcp", nat: 'outside', alias: "-->internet" }
-    - { name: "eth2", address: "172.24.0.254/24", alias: "-->oob-mgmt_switch" }
+      - { name: "eth3", address: "dhcp", nat: 'outside', alias: "-->internet" }
+      - { name: "eth2", address: "172.24.0.254/24", alias: "-->oob-mgmt_switch" }
 
-OOB_MGMT:
+loopback_base_cidr: "192.168.0.0/22"
+
+oob_mgmt:
+  cidr: "172.24.0.0/24"
   domain: 'cumulusvxgns3.lab'
   dhcp_range: '172.24.0.50,172.24.0.200'
   gateway_address: '172.24.0.254'

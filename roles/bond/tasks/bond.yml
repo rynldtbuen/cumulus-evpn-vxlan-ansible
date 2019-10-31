@@ -10,7 +10,7 @@
           net add bond {{ bond }} bridge {{ 'vids' if v['mode'] == 'trunk' else 'access' }} {{ v['vids'] }}
           {% endfor %}
 
-- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+- name: "{{ 'Committed changes ' if not ansible_check_mode else 'Pending changes' }}"
   cml_bond:
       running: "{{ show_config['msg'] }}"
       intent: "{{ intent }}"

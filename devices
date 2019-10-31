@@ -1,22 +1,14 @@
 localhost ansible_connection=local ansible_become=true ansible_become_pass=admin ansible_python_interpreter=/home/reynold/Projects/vevn/cml/bin/python
 
 # The 'mgmt_hwaddr' variable is the hardware address of interface connected to oob management network
-[rack1]
+
+[leaf]
 leaf1 mgmt_hwaddr='0c:d9:c8:fa:01:00'
 leaf2 mgmt_hwaddr='0c:d9:c8:fc:cb:00'
-
-[rack2]
 leaf3 mgmt_hwaddr='0c:d9:c8:0e:d9:00'
 leaf4 mgmt_hwaddr='0c:d9:c8:53:7a:00'
-
-[rack3]
-leaf5 mgmt_hwaddr='0c:d9:c8:93:4b:00'
-leaf6 mgmt_hwaddr='0c:d9:c8:62:7a:00'
-
-[leaf:children]
-rack1
-rack2
-rack3
+#leaf5 mgmt_hwaddr='0c:d9:c8:93:4b:00'
+#leaf6 mgmt_hwaddr='0c:d9:c8:62:7a:00'
 
 [border]
 border1 mgmt_hwaddr='0c:d9:c8:eb:c4:00'
@@ -65,8 +57,8 @@ edge
 
 [server]
 server1 mgmt_hwaddr='0c:d9:c8:ec:56:00'
-server2 mgmt_hwaddr='0c:d9:c8:d0:4f:00'
-server3 mgmt_hwaddr='0c:d9:c8:35:67:00'
+#server2 mgmt_hwaddr='0c:d9:c8:d0:4f:00'
+#server3 mgmt_hwaddr='0c:d9:c8:35:67:00'
 
 # Default credentials. Change according to your topology
 # Use Ansible Single Encrypted Variable to encrypt password variables
@@ -76,4 +68,5 @@ default_pass=ubuntu
 ansible_become=true
 ansible_user=ubuntu
 ansible_become_pass=ubuntu
+ansible_network_os=server
 ansible_python_interpreter=/usr/bin/env python3

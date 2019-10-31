@@ -3,7 +3,7 @@
       intent: |
           set interfaces loopback lo address '{{ loopback['ip'] }}'
 
-- name: "{{ 'Changes committed' if not ansible_check_mode else 'Pending changes' }}"
+- name: "{{ 'Committed changes ' if not ansible_check_mode else 'Pending changes' }}"
   vyos_loopback:
       running: "{{ show_config['stdout'] }}"
       intent: "{{ intent }}"
